@@ -1,169 +1,217 @@
-# MegaManZeroRecomp
+# MegaManZeroRecomp — Mega Man Zero, recompiled
 
-Static recompilation experiment for Mega Man Zero (USA) using gbarecomp. The
-baseline is hardware-faithful LLE: the real GBA BIOS and cartridge ARM/Thumb
-code execute through the static dispatcher. HLE is not used to establish the
-baseline.
+Static recompilation of **Mega Man Zero** (Game Boy Advance) to native PC,
+built on the [`gbarecomp`](https://github.com/mstan/gbarecomp) framework.
 
-## Status
+> **Status — playable static-first bring-up (v0.0.1)**
+>
+> Mega Man Zero boots through the real GBA BIOS, reaches gameplay, has working
+> controls, audio, and persistent SRAM, and is comfortable to play in the
+> normal windowed runner. Tested routes through the opening mission have full
+> static coverage. The entire game has not been exhaustively proven static:
+> an uncovered target falls back to the instruction interpreter, is reported,
+> and can be folded into a later static corpus.
 
-The real BIOS reset path now executes deterministic coverage campaigns using
-only statically generated native code:
+## Screenshots
 
-- `campaign` passes 30,000 frames from reset into the opening mission.
-- `campaign-combat` passes 60,000 frames and visibly remains in active combat,
-  combining movement, attacks, jumps, and dashes through hardware `KEYINPUT`.
-- `campaign-traverse` passes 60,000 frames while driving sustained rightward
-  traversal with deterministic attacks, dashes, and jumps. It exercises a much
-  broader set of player, enemy, effect, object, renderer, and stage callbacks.
-- `campaign-safe` passes 30,000 frames with lower-risk full-height traversal and
-  reaches the opening Golem sequence without dash-induced contact pressure.
-- `campaign-clear` passes 30,000 frames, triggers the scripted Golem encounter,
-  receives the Z-Saber, and exercises its main-weapon B action callback. The
-  current deterministic finish attempt dies and automatically retries to the
-  pre-trigger room; despite the legacy profile name, Golem defeat and mission
-  completion are not yet strict coverage claims.
+| Opening mission | Active gameplay |
+|---|---|
+| ![Zero and the Resistance in the opening mission](docs/screenshots/mmz-opening.png) | ![Zero fighting through the opening stage](docs/screenshots/mmz-gameplay.png) |
 
-These strict proofs report zero dispatch misses, interpreted instructions,
-healed/cache code, unmapped bus accesses, or unhandled I/O accesses. BIOS HLE,
-interpreter bridging, cache loading, and self-healing recompilation are all
-disabled. The current reviewed corpus contains 10,885 ARM/Thumb functions,
-four observed code-copy mappings, 33 bounded callback/jump-table declarations,
-and 42 exact interior resume aliases for observed asynchronous or indirect
-control-flow boundaries. This is strong path-specific static closure, not a
-whole-game claim.
+Both images were captured from strict native/LLE verification runs.
 
-The engine models the cartridge's hardware SRAM path (blank `0xFF` state, byte
-writes, mirroring, and atomic persistence). Strict verification creates and
-removes a fresh profile-specific SRAM file so repeated runs do not silently
-inherit save state.
+## What is recompiled
 
-An independent NanoBoyAdvance run with its MP2K HLE disabled, the real BIOS,
-and fresh blank SRAM independently replayed the same hardware inputs. After
-correcting native GBA alpha blending and brightness arithmetic in RGB555 space,
-strict recomp frame 14,999 and oracle frame 15,000 are pixel-identical
-(`changed_pixels=0`). The one-frame index offset is a presentation-boundary
-phase difference; same-index frame 15,000 differs only in 14 animation pixels.
-The earlier 1,088-pixel sprite/HUD residual is therefore resolved rather than
-masked with an HLE replacement.
+The original ROM's ARM7TDMI ARM/Thumb code is translated into native C++ ahead
+of time. The real GBA BIOS is also recompiled and executed through the LLE path;
+BIOS HLE is an optional convenience and is not used to establish correctness.
+The `gbarecomp` runtime models the PPU, APU, DMA, timers, interrupts, cartridge
+SRAM, input, and other hardware-facing behavior.
 
-The combat oracle remains exact through native frame 9,558. VBlank-updated
-state then appears on a different nearby frontend callback
-(`native 9,559 == oracle 9,561`, pixel-exact), so the comparison harness records
-the best captured oracle frame within a configurable neighborhood instead of
-assuming same-index presentation. Near frame 20,000, the best observed pair has
-an exact world/background and a 1,253-pixel residual confined to animated
-sprites, projectiles, and HUD components. That late-combat timing residual is
-still open; it is not represented as full visual parity.
+This is not a decompilation or a source port. No game source, ROM data, or BIOS
+image is included in this repository or its releases.
 
-The independent oracle also replays the `campaign-clear` inputs through frame
-20,000, immediately before the encounter trigger. Both cores visibly reach the
-same state; native/oracle screenshots differ by 19 pixels at frame 16,000 and 14
-pixels at frame 20,000. Transition-sensitive checkpoints remain non-exact
-(5,480 pixels at frame 14,000, 28,708 at 14,500, and 912 at 18,000), so this is
-evidence for the shared pre-trigger route rather than a claim of all-frame or
-post-trigger parity.
+## ROM identity
 
-The campaign also exposed a 0x24-byte position-independent routine copied from
-ROM `0x080C8900` to overlapping IWRAM/stack placements. `[[extra_func]]` now
-accepts an optional `source_addr`, allowing the function finder to decode an
-observed runtime entry from its ROM source while preserving the runtime PC and
-relocation bias. A regression test covers the overlapping placements. This
-supports the observed LLE pattern; it is not yet a claim of arbitrary dynamic
+| Target | Game | Region/revision | SHA-1 | Debug port |
+|---|---|---|---|---|
+| `MegaManZeroRecomp` | Mega Man Zero | USA, revision 0 | `193b14120119162518a73c70876f0b8bffdbd96e` | 19862 |
+
+The runtime hash-gates the ROM before execution.
+
+## Quick start
+
+1. Download `MegaManZeroRecomp-windows-x64-v0.0.1.zip` from
+   [Releases](../../releases) and extract the whole folder.
+2. Run `MegaManZeroRecomp.exe`.
+3. Select your own legally obtained Mega Man Zero (USA) ROM and GBA BIOS dump
+   when prompted. Their paths are cached for future launches.
+4. Play. SRAM saves, save states, and native coverage caches stay beside the
+   extracted runner.
+
+## Controls
+
+| GBA input | Keyboard |
+|---|---|
+| D-Pad | Arrow keys |
+| A | Z |
+| B | X |
+| L | A |
+| R | S |
+| Start | Enter |
+| Select | Right Shift |
+| Fast-forward | Hold Tab |
+
+Save states use **Shift+F1–F9** to save and **F1–F9** to load.
+
+## Static coverage and fallback
+
+The normal player build is static-first. A reviewed generated function runs
+natively. If indirect control flow reaches an address absent from that corpus,
+the runtime executes only that gap in its ARM/Thumb interpreter and emits a
+dispatch miss. Self-healing can compile the observed target to native code and
+persist it in `recomp_cache/`; the reviewed proposal can then be folded back
+into `game.toml` and regenerated for a later release.
+
+Strict verification is deliberately different. With
+`GBARECOMP_STRICT_STATIC=1`, caches, self-healing, and interpreter bridging are
+disabled, so the first missing PC aborts. A passing strict run is therefore a
+path-specific static-coverage proof, not a whole-game claim.
+
+## Verified bring-up evidence
+
+The committed corpus contains 10,885 ARM/Thumb functions, four observed
+code-copy mappings, 33 bounded callback/jump-table declarations, and 42 exact
+interior resume aliases. These deterministic LLE campaigns pass with zero
+dispatch misses, interpreted instructions, healed/cache code, unmapped bus
+accesses, or unhandled I/O accesses:
+
+| Profile | Frames | Route covered |
+|---|---:|---|
+| `campaign` | 30,000 | Reset through the opening mission |
+| `campaign-combat` | 60,000 | Sustained movement, attacks, jumps, and dashes |
+| `campaign-traverse` | 60,000 | Broad opening-stage traversal and callbacks |
+| `campaign-safe` | 30,000 | Lower-risk route to the Golem sequence |
+| `campaign-clear` | 30,000 | Golem trigger, Z-Saber grant, and weapon callback |
+
+The cartridge SRAM model starts blank at `0xFF`, supports byte writes and
+mirroring, and persists atomically. Strict verification uses a fresh
+profile-specific save so previous play cannot hide missing initialization.
+
+### Independent oracle checks
+
+An isolated NanoBoyAdvance run with MP2K HLE disabled, a real BIOS, and blank
+SRAM replays the same hardware input. Native frame 14,999 and oracle frame
+15,000 are pixel-identical; the one-frame offset is a presentation-boundary
+phase difference. The combat route remains exact through native frame 9,558,
+after which nearby-frame matching isolates a late animated-sprite/projectile
+timing residual. The world/background remains exact in the measured late
+combat pair. Those residuals are documented rather than represented as full
+all-frame visual parity.
+
+The campaign also exercises a 0x24-byte position-independent routine copied
+from ROM `0x080C8900` to overlapping IWRAM/stack placements. The recompiler's
+`source_addr` metadata decodes that observed LLE pattern from its ROM source
+while retaining runtime relocation; it is not a claim of arbitrary dynamic
 code relocation.
 
-## Local layout
+## Building from source
 
-- Engine worktree: `../gbarecomp-wt-mmz-static` (`codex/mmz-static`)
-- ROM: `roms/megaman_zero_usa.gba` (ignored)
-- Generated C++: `generated/` (ignored)
-- Config and reviewed discovery facts: `game.toml`
-
-## Playable coverage discovery
-
-Run the handoff launcher from this directory:
+Prerequisites on Windows: CMake, Ninja, and MSYS2's mingw64 GCC/G++ and SDL2.
+Clone this repository next to `gbarecomp`:
 
 ```powershell
-& .\tools\play-discovery.ps1
+git clone https://github.com/mstan/gbarecomp.git
+git clone https://github.com/mstan/MegaManZeroRecomp.git
+cd MegaManZeroRecomp
 ```
 
-This opens the normal SDL window with real BIOS/LLE boot and persistent SRAM at
-`saves/megaman_zero_discovery.sav`. Static native code always runs first. If a
-player reaches an uncovered dispatch target, only that gap bridges through the
-reference instruction interpreter; native self-healing and cache loading remain
-off. Closing the window writes a timestamped directory under
-`build/discovery_sessions/` containing the full log, machine-readable coverage,
-raw reviewed-proposal fragment, ROM/build identity manifest, frame-indexed
-`keyinput.csv`, and exact `initial.sav`/`final.sav` snapshots. The finalized
-manifest records the ending PPU frame and hashes the executable, ROM, config,
-input trace, and SRAM evidence. Classified game/BIOS review aids are proposals
-only; nothing is merged into `game.toml` automatically.
-
-Default keyboard controls are arrows for the D-pad, `Z` for GBA A, `X` for GBA
-B, `A` for L, `S` for R, Enter for Start, Right Shift for Select, and hold Tab
-for fast-forward. Use `-FreshSave` to discard the persistent discovery SRAM.
-
-Discovery mode is deliberately not an acceptance result when fallback occurs.
-After reviewing and folding coverage into static metadata, replay the affected
-route with `tools/verify-strict.ps1`; only its zero-miss/zero-interpreter result
-counts as fully static coverage.
-
-To replay a player's recorded route after folding its reviewed misses, use the
-session manifest's `final_ppu_frame` with the captured trace and initial SRAM:
+Place the verified ROM at `roms/megaman_zero_usa.gba`. ROM-derived generated
+translation units are intentionally not committed, so build the engine tool
+and regenerate them locally:
 
 ```powershell
-& .\tools\verify-strict.ps1 -Frames <final_ppu_frame> `
+cmake -S ..\gbarecomp -B ..\gbarecomp\build -G Ninja `
+  -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe `
+  -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe
+cmake --build ..\gbarecomp\build --target gba_recompile
+
+pwsh tools/regen.ps1
+
+cmake -S . -B build -G Ninja `
+  -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe `
+  -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe
+cmake --build build --target MegaManZeroRecomp --parallel
+```
+
+Run the normal interactive discovery build:
+
+```powershell
+pwsh tools/play-discovery.ps1
+```
+
+It uses real BIOS/LLE boot, persistent SRAM, static-native dispatch first, and
+an interpreter bridge only for uncovered targets. Each session records logs,
+coverage JSON, reviewed-proposal fragments, input, ROM/build hashes, and exact
+initial/final SRAM snapshots under `build/discovery_sessions/`. Nothing is
+automatically merged into `game.toml`.
+
+After reviewing a session, replay it with strict fallback disabled:
+
+```powershell
+pwsh tools/verify-strict.ps1 -Frames <final_ppu_frame> `
   -InputProfile user-replay `
   -InputTrace .\build\discovery_sessions\<session>\keyinput.csv `
   -InitialSave .\build\discovery_sessions\<session>\initial.sav
 ```
 
-Input traces preserve the last observed host key state at frame granularity and
-are intended for a run from their matching initial SRAM. Savestate loads are
-not currently encoded in the trace, so avoid using savestates during a coverage
+Savestate loads are not encoded in input traces, so avoid them in a coverage
 session that must be replayed deterministically.
 
-## Build loop
+The deterministic verification campaigns are:
 
 ```powershell
-cmake -S ../gbarecomp-wt-mmz-static -B ../gbarecomp-wt-mmz-static/build -G Ninja `
-  -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe `
-  -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe
-cmake --build ../gbarecomp-wt-mmz-static/build --target gba_recompile
-pwsh tools/regen.ps1
-cmake -S . -B build -G Ninja `
-  -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe `
-  -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/g++.exe
-cmake --build build --target MegaManZeroRecomp
 pwsh tools/verify-strict.ps1
 pwsh tools/verify-strict.ps1 -Frames 30000 -InputProfile campaign
 pwsh tools/verify-strict.ps1 -Frames 60000 -InputProfile campaign-combat
 pwsh tools/verify-strict.ps1 -Frames 60000 -InputProfile campaign-traverse
 pwsh tools/verify-strict.ps1 -Frames 30000 -InputProfile campaign-safe
 pwsh tools/verify-strict.ps1 -Frames 30000 -InputProfile campaign-clear
-python ./tools/compare_nba_lockstep.py --profile campaign-clear `
+python tools/compare_nba_lockstep.py --profile campaign-clear `
   --checkpoints 14000,14500,16000,18000,20000 --image-only
 ```
 
-After every diagnostic run, inspect `recomp_coverage*.json`, the master miss
-fragment, and the reviewed seed proposal. "Fully static" requires zero
-interpreted PCs and zero healed/cache PCs for that run. Visible-state claims
-require a screenshot, and correctness work compares the earliest divergence
-against an independent mGBA/NanoBoyAdvance oracle.
+Generated guest code is deterministically split into 16 stable shards.
+Unchanged regeneration leaves shards untouched, and a local metadata addition
+rebuilds only its address-hashed shard.
 
-`tools/verify-strict.ps1` forces BIOS HLE, cache loading, interpreter bridging,
-forced interpretation, and self-healing off. It fails unless the runtime emits the exact LLE and
-zero/zero/zero proof markers, and writes a profile-qualified log and PNG under
-`build/` so one coverage path cannot overwrite another path's evidence.
+## Release packaging
 
-`tools/run-nba-oracle.ps1` performs the independent blank-SRAM replay against
-the isolated NanoBoyAdvance oracle at `../_nba_oracle`. It captures the target
-frame and both neighbors so presentation-boundary differences cannot hide a
-visual divergence. The oracle exposes only hardware input and frame stepping;
-it does not replace guest logic with HLE.
+With the generated corpus present, produce the same ROM/BIOS-free Windows zip
+used by GitHub Releases:
 
-Generated guest code is deterministically split into 16 stable translation
-units. Unchanged regeneration touches no shards; adding one local resume alias
-rebuilds only its address-hashed shard. This reduced a full first build from a
-terminated five-minute monolith to about one minute, with later reviewed
-iterations typically taking tens of seconds.
+```powershell
+powershell -File tools\make_release.ps1 -Version 0.0.1
+```
+
+The archive contains the stripped executable, four runtime DLLs, a local
+overlay toolchain for native self-healing, and a player README. It does not
+contain the ROM, BIOS, save data, symbols, config, or generated source.
+
+## Legal
+
+Mega Man Zero and related names are trademarks of Capcom. This unaffiliated,
+non-commercial preservation and research project contains no copyrighted ROM
+or BIOS image. You must supply your own legally obtained dumps. The
+`gbarecomp` framework is maintained and licensed separately in its own
+repository; third-party components retain their respective licenses.
+
+---
+
+<p align="center">
+  <sub><b>R.A.I.D. — Retro AI Development</b> · a Discord for AI-assisted retro reverse-engineering, decomp &amp; recomp</sub>
+</p>
+
+<p align="center">
+  <a href="https://discord.gg/Ad9BwSzctP">Join the Retro AI Development (R.A.I.D.) Discord</a>
+</p>

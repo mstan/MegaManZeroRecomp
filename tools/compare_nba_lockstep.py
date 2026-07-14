@@ -305,7 +305,7 @@ def main() -> int:
     parser.add_argument("--oracle", type=Path,
                         default=workspace / "_nba_oracle" / "build" / "nba_oracle.exe")
     parser.add_argument("--bios", type=Path,
-                        default=workspace / "gbarecomp-wt-mmz-static" / "bios" / "gba_bios.bin")
+                        default=workspace / "gbarecomp" / "bios" / "gba_bios.bin")
     parser.add_argument("--rom", type=Path,
                         default=repo / "roms" / "megaman_zero_usa.gba")
     parser.add_argument("--image-only", action="store_true",

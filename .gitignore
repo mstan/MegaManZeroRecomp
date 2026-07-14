@@ -7,6 +7,9 @@ generated/*.h
 generated/*.json
 build/
 build-*/
+release-stage/
+third_party/
+_triage/
 recomp_cache*/
 saves/
 *.sav
@@ -17,6 +20,8 @@ saves/
 *.log
 *.bmp
 *.png
+*.csv
+*.frag
 bios.cfg
 rom.cfg
 recomp_coverage*.json
@@ -25,4 +30,13 @@ recomp_seed_proposals.toml
 hang_trace.csv
 .vs/
 .vscode/
+.idea/
 __pycache__/
+.DS_Store
+Thumbs.db
+memory/
+
+# Curated native screenshots used by the repository landing page.
+!docs/
+!docs/screenshots/
+!docs/screenshots/*.png

@@ -1,6 +1,6 @@
 param(
-    [string]$OracleRoot = "F:\Projects\gbarecomp\_nba_oracle",
-    [string]$Bios = "F:\Projects\gbarecomp\gbarecomp-wt-mmz-static\bios\gba_bios.bin",
+    [string]$OracleRoot = (Join-Path $PSScriptRoot '..\..\_nba_oracle'),
+    [string]$Bios = (Join-Path $PSScriptRoot '..\..\gbarecomp\bios\gba_bios.bin'),
     [string]$Rom = "$PSScriptRoot\..\roms\megaman_zero_usa.gba",
     [int]$Frames = 10000,
     [ValidateSet("menu", "walk", "campaign")]

@@ -83,7 +83,7 @@ def main() -> int:
         "--bios-generated",
         type=pathlib.Path,
         default=ROOT.parent
-        / "gbarecomp-wt-mmz-static"
+        / "gbarecomp"
         / "src"
         / "runtime"
         / "generated_bios"

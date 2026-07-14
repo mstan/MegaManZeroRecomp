@@ -1,6 +1,6 @@
 param(
     [string]$Rom = (Join-Path $PSScriptRoot '..\roms\megaman_zero_usa.gba'),
-    [string]$GbarecompRoot = (Join-Path $PSScriptRoot '..\..\gbarecomp-wt-mmz-static'),
+    [string]$GbarecompRoot = (Join-Path $PSScriptRoot '..\..\gbarecomp'),
     [int]$MaxFunctions = 65536
 )
 
@@ -10,7 +10,7 @@ $romPath = (Resolve-Path $Rom).Path
 $engine = (Resolve-Path $GbarecompRoot).Path
 $tool = Join-Path $engine 'build\gba_recompile.exe'
 if (-not (Test-Path -LiteralPath $tool)) {
-    throw "Missing $tool. Configure and build the isolated gbarecomp worktree first."
+    throw "Missing $tool. Configure and build the sibling gbarecomp checkout first."
 }
 
 $actual = (Get-FileHash -LiteralPath $romPath -Algorithm SHA1).Hash.ToLowerInvariant()

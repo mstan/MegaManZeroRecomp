@@ -42,7 +42,9 @@ window_title = "MegaManZeroRecomp"
 
 [video]
 screen = "frontlit"
-widescreen = 0
+# Authentic 240x160 remains the default. Mega Man Zero advertises an opt-in
+# extended-view capability; 288x160 is the current tile-aligned test target.
+view_width = 240
 
 [audio]
 shadow = false
@@ -132,6 +134,18 @@ addr = 0x080006DA
 mode = "thumb"
 resume = true
 note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x080006D8 during charged Z-Saber combat"
+
+[[resume_range]]
+start = 0x0800A21A
+end = 0x0800A23A
+mode = "thumb"
+note = "LLE-observed IRQ returns at multiple interior instructions during the deterministic menu profile; cover the reviewed generated host extent"
+
+[[resume_range]]
+start = 0x08002380
+end = 0x080023B8
+mode = "thumb"
+note = "LLE-observed IRQ return inside the renderer callback; cover the reviewed generated host extent"
 
 [[extra_func]]
 addr = 0x080004EA
@@ -2189,11 +2203,11 @@ mode = "thumb"
 resume = true
 note = "Executed interior target; generated host 0x080004E8..0x08000502"
 
-[[extra_func]]
-addr = 0x080033E6
+[[resume_range]]
+start = 0x080033DC
+end = 0x080033F0
 mode = "thumb"
-resume = true
-note = "IRQ-return continuation observed by paired VBlank oracle drive; interior of 0x080033DC..0x080033F0"
+note = "IRQ-return continuations inside the reviewed copy helper, including the extended-view LLE full-reload path"
 
 [[extra_func]]
 addr = 0x08009270

@@ -64,6 +64,29 @@ The runtime hash-gates the ROM before execution.
 
 Save states use **Shift+F1–F9** to save and **F1–F9** to load.
 
+## Experimental extended view
+
+The faithful default remains 240x160. An opt-in extended view can be selected
+with `--view-width 288`; widths from 240 through 320 are accepted, with
+tile-aligned 288x160 the current test target.
+
+The enhancement executes Mega Man Zero's original guest full-reload and
+incremental background streamers at shifted margin positions and keeps their
+generated tilemaps in presentation-only caches. It widens all twelve original
+guest OAM clipping paths through reviewed ROM-literal overrides and extends OBJ
+X interpretation only in the wide PPU path. The authentic live maps, CPU state,
+timing state, and center 240 pixels are restored unchanged: synthetic guest
+writes are journaled and rolled back, device writes are suppressed, and stack
+use is canary-checked. Margin caches re-seed after save-state loads, authentic
+full reloads, and coordinate discontinuities. Unsupported PPU layouts,
+non-uniform window effects, inactive stage scenes, stage-behavior transitions,
+camera bounds, and authored outer-map edges fail closed to black margins.
+
+This remains experimental rather than a whole-game widescreen guarantee.
+Actor spawn/cull windows and the 128-entry OAM budget remain authentic and may
+still expose game-specific pop-in under wider or untested routes. Use 240x160
+for the faithful view; 288x160 is the conservative enhanced target.
+
 ## Static coverage and fallback
 
 The normal player build is static-first. A reviewed generated function runs
@@ -81,8 +104,9 @@ path-specific static-coverage proof, not a whole-game claim.
 ## Verified bring-up evidence
 
 The committed corpus contains 10,885 ARM/Thumb functions, four observed
-code-copy mappings, 33 bounded callback/jump-table declarations, and 42 exact
-interior resume aliases. These deterministic LLE campaigns pass with zero
+code-copy mappings, 33 bounded callback/jump-table declarations, and 92 exact
+interior resume aliases (including three bounded, reviewed IRQ-resume spans).
+These deterministic LLE campaigns pass with zero
 dispatch misses, interpreted instructions, healed/cache code, unmapped bus
 accesses, or unhandled I/O accesses:
 

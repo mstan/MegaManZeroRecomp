@@ -1,5 +1,7 @@
 param(
     [int]$Frames = 10000,
+    [ValidateRange(240, 320)]
+    [int]$ViewWidth = 240,
     [string]$InputProfile = 'menu',
     [string]$BuildDir = (Join-Path $PSScriptRoot '..\build'),
     [string]$InputTrace = '',
@@ -12,8 +14,8 @@ $build = (Resolve-Path $BuildDir).Path
 $exe = Join-Path $build 'MegaManZeroRecomp.exe'
 $config = Join-Path $root 'game.toml'
 $profileTag = ($InputProfile -replace '[^A-Za-z0-9_.-]', '_')
-$png = Join-Path $build "mmz_strict_${profileTag}_f$Frames.png"
-$log = Join-Path $build "mmz_strict_${profileTag}_f$Frames.log"
+$png = Join-Path $build "mmz_strict_${profileTag}_${ViewWidth}x160_f$Frames.png"
+$log = Join-Path $build "mmz_strict_${profileTag}_${ViewWidth}x160_f$Frames.log"
 $save = Join-Path $build "mmz_strict_${profileTag}_blank.sav"
 $stdoutLog = Join-Path $build '.strict-stdout.tmp'
 $stderrLog = Join-Path $build '.strict-stderr.tmp'
@@ -26,6 +28,11 @@ $env:GBARECOMP_BIOS_HLE = '0'
 $env:GBARECOMP_STRICT_STATIC = '1'
 $env:GBARECOMP_SELFHEAL_RECOMPILE = '0'
 $env:GBARECOMP_HANG_WATCHDOG = '0'
+$env:GBARECOMP_VIEW_WIDTH = $ViewWidth.ToString(
+    [System.Globalization.CultureInfo]::InvariantCulture)
+Remove-Item Env:GBARECOMP_WIDESCREEN -ErrorAction SilentlyContinue
+Remove-Item Env:GBARECOMP_WS_WIP -ErrorAction SilentlyContinue
+Remove-Item Env:GBARECOMP_MMZ_WS_TRACE -ErrorAction SilentlyContinue
 Remove-Item Env:GBARECOMP_FORCE_INTERP -ErrorAction SilentlyContinue
 Remove-Item Env:GBARECOMP_BOSS_STRATEGY -ErrorAction SilentlyContinue
 Remove-Item Env:GBARECOMP_INPUT_RECORD -ErrorAction SilentlyContinue
@@ -46,7 +53,8 @@ if ($InitialSave) {
 Push-Location $root
 try {
     $process = Start-Process -FilePath $exe -ArgumentList @(
-        '--frames', $Frames, '--dump-png', $png, '--save', $save, $config
+        '--frames', $Frames, '--view-width', $ViewWidth,
+        '--dump-png', $png, '--save', $save, $config
     ) -NoNewWindow -Wait -PassThru `
         -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog
     $exitCode = $process.ExitCode
@@ -84,5 +92,13 @@ foreach ($marker in $required) {
     }
 }
 
+$extendedMarker = "extended view ON: requested=${ViewWidth}x160 "
+if ($ViewWidth -gt 240 -and -not $text.Contains($extendedMarker)) {
+    throw "Requested extended-view width was not activated: $extendedMarker; see $log"
+}
+if ($ViewWidth -eq 240 -and $text.Contains('extended view ON:')) {
+    throw "Faithful 240x160 verification unexpectedly activated extended view; see $log"
+}
+
 $inputLabel = if ($InputTrace) { "trace=$tracePath" } else { "input=$InputProfile" }
-Write-Output "strict_verification=PASS frames=$Frames $inputLabel png=$png log=$log"
+Write-Output "strict_verification=PASS frames=$Frames view=${ViewWidth}x160 $inputLabel png=$png log=$log"

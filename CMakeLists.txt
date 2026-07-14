@@ -23,6 +23,7 @@ file(GLOB GAME_GENERATED_SOURCES CONFIGURE_DEPENDS
 
 add_executable(MegaManZeroRecomp
     src/main.cpp
+    src/mmz_extended_view.cpp
     ${GAME_GENERATED_SOURCES}
 )
 

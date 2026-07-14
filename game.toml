@@ -1,0 +1,3820 @@
+# Mega Man Zero (USA, AZCE, revision 0).
+# Hybrid configuration consumed by both gba_recompile and the runtime.
+
+[game]
+name = "Mega Man Zero"
+short_name = "megaman_zero"
+
+[program]
+name = "Mega Man Zero (USA)"
+id = "AZCE"
+load_address = 0x08000000
+size = 0x00800000
+entry_pc = 0x08000000
+# Strict-static corpus policy: callbacks are admitted from observed LLE
+# dispatch targets, not speculative literal words that merely resemble code.
+speculative_literal_harvest = false
+# Stable parallel translation units keep reviewed static-closure iterations
+# practical without changing guest control flow or runtime behavior.
+codegen_shards = 16
+
+[identity]
+sha1 = "193b14120119162518a73c70876f0b8bffdbd96e"
+md5 = "b24a17d080a01a404cbf018ba42b9803"
+
+[bios]
+path = "../gbarecomp-wt-mmz-static/bios/gba_bios.bin"
+sha1 = "300c20df6731a33952ded8c436f7f186d25d3492"
+hle = false
+
+[rom]
+path = "roms/megaman_zero_usa.gba"
+sha1 = "193b14120119162518a73c70876f0b8bffdbd96e"
+
+[save]
+type = "sram"
+size = 32768
+path = "saves/megaman_zero_usa.sav"
+
+[runtime]
+debug_port = 19862
+window_title = "MegaManZeroRecomp"
+
+[video]
+screen = "frontlit"
+widescreen = 0
+
+[audio]
+shadow = false
+
+# Executable code physically copied into IWRAM by the game. The recompiler
+# decodes each runtime PC from the corresponding immutable ROM bytes.
+[[code_copy]]
+runtime_start = 0x03000000
+source_start = 0x080C6894
+size = 0x00000380
+name = "iwram_m4a_mixer"
+note = "Exact live-IWRAM/ROM match at frame 600; mixed ARM/THUMB sound mixer"
+
+[[code_copy]]
+runtime_start = 0x030003B8
+source_start = 0x080001BC
+size = 0x00000120
+name = "iwram_irq_handler"
+note = "Exact startup copy of the cartridge IRQ handler"
+
+[[code_copy]]
+runtime_start = 0x03000A5C
+source_start = 0x080C8900
+size = 0x00000024
+name = "iwram_memcpy"
+note = "Exact live-IWRAM/ROM match for the copied memcpy routine"
+
+[[code_copy]]
+runtime_start = 0x03001070
+source_start = 0x080C8900
+size = 0x00000024
+name = "stack_local_memcpy_campaign"
+note = "Observed campaign call: guest copies the 0x24-byte position-independent routine to SP=0x03001070, then BX calls it"
+
+[[extra_func]]
+addr = 0x03000000
+mode = "thumb"
+note = "IWRAM mixer entry; interworks to ARM at 0x0300000C"
+
+[[extra_func]]
+addr = 0x0300000C
+mode = "arm"
+note = "ARM body reached by the copied mixer THUMB prologue"
+
+[[extra_func]]
+addr = 0x03001070
+mode = "thumb"
+note = "Executed stack-local copy of ROM 0x080C8900; first-miss live bytes matched exactly"
+
+[[extra_func]]
+addr = 0x030003B8
+mode = "arm"
+note = "Copied cartridge IRQ handler entry"
+
+[[extra_func]]
+addr = 0x030004AC
+mode = "arm"
+resume = true
+note = "Dynamic IRQ callback return into the copied handler rooted at 0x030003B8"
+
+[[extra_func]]
+addr = 0x03000A5C
+mode = "thumb"
+note = "Copied memcpy entry"
+
+[[extra_func]]
+addr = 0x03000A64
+source_addr = 0x080C8900
+mode = "thumb"
+note = "Observed later stack placement of the same position-independent 0x24-byte memcpy helper; explicit ROM backing disambiguates the overlapping earlier copy"
+
+[[extra_func]]
+addr = 0x08000414
+mode = "thumb"
+note = "Executed gameplay initialization callback; disassembly begins with push {r4,lr}"
+
+[[extra_func]]
+addr = 0x0801F38C
+mode = "thumb"
+note = "LLE-observed Z-Saber action callback; odd pointer 0x0801F38D is stored in the cartridge action structure at 0x082A99E8 and the target begins with a clean push {r4-r7,lr} prologue"
+
+# Exception returns can resume at instruction addresses inside an existing
+# function.  These aliases keep that hardware path fully static without
+# splitting the containing function into overlapping host functions.
+[[extra_func]]
+addr = 0x080006DA
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x080006D8 during charged Z-Saber combat"
+
+[[extra_func]]
+addr = 0x080004EA
+mode = "thumb"
+resume = true
+note = "IRQ return into the busy loop rooted at 0x080004E8"
+
+[[extra_func]]
+addr = 0x080004EC
+mode = "thumb"
+resume = true
+note = "IRQ return into the busy loop rooted at 0x080004E8"
+
+[[extra_func]]
+addr = 0x080004EE
+mode = "thumb"
+resume = true
+note = "IRQ return into the busy loop rooted at 0x080004E8"
+
+[[extra_func]]
+addr = 0x080004F0
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the busy loop rooted at 0x080004E8"
+
+[[extra_func]]
+addr = 0x080004F2
+mode = "thumb"
+resume = true
+note = "IRQ return into the busy loop rooted at 0x080004E8"
+
+[[extra_func]]
+addr = 0x080004F6
+mode = "thumb"
+resume = true
+note = "Executed IRQ return inside the busy loop rooted at 0x080004E8"
+
+[[extra_func]]
+addr = 0x080005EA
+mode = "thumb"
+resume = true
+note = "IRQ return into the function rooted at 0x080005BC"
+
+[[extra_func]]
+addr = 0x080006EE
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x080006D8"
+
+[[extra_func]]
+addr = 0x080006F2
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x080006D8"
+
+[[extra_func]]
+addr = 0x08000706
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x08000700 during TCP oracle replay"
+
+[[extra_func]]
+addr = 0x08002210
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x080021DE"
+
+[[extra_func]]
+addr = 0x0800221E
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x080021DE"
+
+[[extra_func]]
+addr = 0x080021EC
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x080021DE"
+
+[[extra_func]]
+addr = 0x080021F4
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x080021DE"
+
+[[extra_func]]
+addr = 0x0800220A
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x080021DE"
+
+[[extra_func]]
+addr = 0x08002216
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x080021DE"
+
+[[extra_func]]
+addr = 0x080023BC
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x080023B8"
+
+[[extra_func]]
+addr = 0x080023D6
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x080023B8"
+
+[[extra_func]]
+addr = 0x0800244C
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x0800244A"
+
+[[extra_func]]
+addr = 0x08006CC2
+mode = "thumb"
+resume = true
+note = "LLE-observed asynchronous resume inside the function rooted at 0x08006CBE"
+
+[[extra_func]]
+addr = 0x080026CE
+mode = "thumb"
+resume = true
+note = "LLE-observed IRQ return to the exact interrupted instruction inside the function rooted at 0x0800261A"
+
+[[extra_func]]
+addr = 0x08000898
+mode = "thumb"
+note = "Indirectly reached function discovered during LLE boot"
+
+[[extra_func]]
+addr = 0x080008D6
+mode = "thumb"
+resume = true
+note = "IRQ return into the function rooted at 0x08000898"
+
+[[extra_func]]
+addr = 0x080008DA
+mode = "thumb"
+resume = true
+note = "IRQ return into the function rooted at 0x08000898"
+
+[[extra_func]]
+addr = 0x080008DE
+mode = "thumb"
+resume = true
+note = "IRQ return into the function rooted at 0x08000898"
+
+[[extra_func]]
+addr = 0x080008F8
+mode = "thumb"
+note = "Indirectly reached function discovered during LLE boot"
+
+[[extra_func]]
+addr = 0x0800094E
+mode = "thumb"
+resume = true
+note = "IRQ return into the function rooted at 0x080008F8"
+
+[[extra_func]]
+addr = 0x08000AD4
+mode = "thumb"
+note = "VBlank callback entry"
+
+[[extra_func]]
+addr = 0x08000AEE
+mode = "thumb"
+resume = true
+note = "Post-call/IRQ continuation inside the callback rooted at 0x08000AD4"
+
+[[extra_func]]
+addr = 0x08001174
+mode = "thumb"
+note = "Indirect BX LR stub reached during LLE boot"
+
+[[extra_func]]
+addr = 0x080BD398
+mode = "thumb"
+note = "Indirectly reached function discovered during LLE boot"
+
+[[extra_func]]
+addr = 0x080BD5E8
+mode = "thumb"
+note = "Observed 30,000-frame campaign callback selected from the table at 0x082C956C; reviewed standalone Thumb function after the preceding literal pool"
+
+[[extra_func]]
+addr = 0x080BD630
+mode = "thumb"
+resume = true
+note = "Indirect BX target inside the function rooted at 0x080BD60E"
+
+[[extra_func]]
+addr = 0x080BE298
+mode = "thumb"
+note = "Fall-through function entry after 0x080BE21E"
+
+[[extra_func]]
+addr = 0x080BF07C
+mode = "thumb"
+note = "Indirectly selected gameplay/menu loop entry"
+
+[[extra_func]]
+addr = 0x080BF09A
+mode = "thumb"
+resume = true
+note = "Loop-back/IRQ continuation inside the function rooted at 0x080BF07C"
+
+[[extra_func]]
+addr = 0x080BF158
+mode = "thumb"
+note = "Indirect gameplay entity callback entry"
+
+[[extra_func]]
+addr = 0x080BF170
+mode = "thumb"
+note = "Indirect gameplay entity callback entry"
+
+[[extra_func]]
+addr = 0x080BF2C8
+mode = "thumb"
+note = "Indirect gameplay/menu state callback entry"
+
+[[extra_func]]
+addr = 0x080BF540
+mode = "thumb"
+note = "Indirect gameplay/menu state callback entry"
+
+[[extra_func]]
+addr = 0x080BF8F8
+mode = "thumb"
+note = "Indirect gameplay/menu state callback entry"
+
+[[extra_func]]
+addr = 0x080BFA18
+mode = "thumb"
+note = "Indirect gameplay/menu state callback entry"
+
+[[extra_func]]
+addr = 0x080C2884
+mode = "thumb"
+note = "Indirect gameplay entity callback entry"
+
+[[extra_func]]
+addr = 0x080C289C
+mode = "thumb"
+note = "Indirect gameplay entity callback entry"
+
+[[extra_func]]
+addr = 0x080C2A04
+mode = "thumb"
+note = "Indirect gameplay entity callback entry"
+
+[[extra_func]]
+addr = 0x080C2CB8
+mode = "thumb"
+note = "Indirect gameplay entity callback entry"
+
+[[extra_func]]
+addr = 0x080C6BC4
+mode = "thumb"
+note = "Indirectly reached memory-clear function discovered during LLE boot"
+
+[[extra_func]]
+addr = 0x080C6BDC
+mode = "thumb"
+note = "Indirect MP2K channel-unlink helper"
+
+[[extra_func]]
+addr = 0x080C6BFC
+mode = "thumb"
+note = "Indirect MP2K channel-stop helper"
+
+[[extra_func]]
+addr = 0x080C6C6C
+mode = "thumb"
+note = "MP2K command-stream helper entry"
+
+[[extra_func]]
+addr = 0x080C6C84
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the helper rooted at 0x080C6C6C"
+
+[[extra_func]]
+addr = 0x080C6C8C
+mode = "thumb"
+note = "MP2K command-stream stack-push handler"
+
+[[extra_func]]
+addr = 0x080C6CA8
+mode = "thumb"
+note = "MP2K command-stream stack-pop handler"
+
+[[extra_func]]
+addr = 0x080C6CF8
+mode = "thumb"
+note = "MP2K command-handler entry"
+
+[[extra_func]]
+addr = 0x080C6CFE
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6CF8"
+
+[[extra_func]]
+addr = 0x080C6D0C
+mode = "thumb"
+note = "MP2K command-handler entry"
+
+[[extra_func]]
+addr = 0x080C6D12
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D0C"
+
+[[extra_func]]
+addr = 0x080C6D20
+mode = "thumb"
+note = "MP2K command-handler entry"
+
+[[extra_func]]
+addr = 0x080C6D3A
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D20"
+
+[[extra_func]]
+addr = 0x080C6D42
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D20"
+
+[[extra_func]]
+addr = 0x080C6D4A
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D20"
+
+[[extra_func]]
+addr = 0x080C6D50
+mode = "thumb"
+note = "MP2K command-handler entry"
+
+[[extra_func]]
+addr = 0x080C6D56
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D50"
+
+[[extra_func]]
+addr = 0x080C6D64
+mode = "thumb"
+note = "MP2K command-handler entry"
+
+[[extra_func]]
+addr = 0x080C6D6A
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D64"
+
+[[extra_func]]
+addr = 0x080C6D78
+mode = "thumb"
+note = "MP2K command-handler entry"
+
+[[extra_func]]
+addr = 0x080C6D7E
+mode = "thumb"
+resume = true
+note = "Post-call continuation inside the handler rooted at 0x080C6D78"
+
+[[extra_func]]
+addr = 0x080C7B7E
+mode = "thumb"
+resume = true
+note = "Observed LLE boundary resume into the function rooted at 0x080C7B7C"
+
+[[extra_func]]
+addr = 0x080C7B84
+mode = "thumb"
+resume = true
+note = "Exception return into an already discovered containing function"
+
+
+# Gameplay callback roots observed during the deterministic 10,000-frame LLE diagnostic run.
+# Each address was executed and reviewed as lying outside every existing generated extent.
+
+[[extra_func]]
+addr = 0x08002184
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 54009
+
+[[extra_func]]
+addr = 0x0800259C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 707
+
+[[extra_func]]
+addr = 0x08002CA4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 619
+
+[[extra_func]]
+addr = 0x080054F8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 893
+
+[[extra_func]]
+addr = 0x0800696C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 10378
+
+[[extra_func]]
+addr = 0x08009F38
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08009F4C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5632
+
+[[extra_func]]
+addr = 0x0800A080
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0800A0A8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4344
+
+[[extra_func]]
+addr = 0x0800A1D0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4545
+
+[[extra_func]]
+addr = 0x0800A474
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1288
+
+[[extra_func]]
+addr = 0x0800A50C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1288
+
+[[extra_func]]
+addr = 0x0800A528
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1288
+
+[[extra_func]]
+addr = 0x0800EDD8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5631
+
+[[extra_func]]
+addr = 0x0800EF2C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08010278
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 348
+
+[[extra_func]]
+addr = 0x08013DFC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2781
+
+[[extra_func]]
+addr = 0x08013E00
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4917
+
+[[extra_func]]
+addr = 0x08013E84
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 715
+
+[[extra_func]]
+addr = 0x080148AC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 112
+
+[[extra_func]]
+addr = 0x08014910
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 10
+
+[[extra_func]]
+addr = 0x0801495C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 39
+
+[[extra_func]]
+addr = 0x08014A9C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 184
+
+[[extra_func]]
+addr = 0x08014C30
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08014CEC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x08014D34
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 12
+
+[[extra_func]]
+addr = 0x08014ED8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 42
+
+[[extra_func]]
+addr = 0x08014FD8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 35
+
+[[extra_func]]
+addr = 0x080150EC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 42
+
+[[extra_func]]
+addr = 0x080151A8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4
+
+[[extra_func]]
+addr = 0x080151DC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x0801525C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5
+
+[[extra_func]]
+addr = 0x08015298
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 849
+
+[[extra_func]]
+addr = 0x080152C8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4
+
+[[extra_func]]
+addr = 0x08015300
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 139
+
+[[extra_func]]
+addr = 0x080153FC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1954
+
+[[extra_func]]
+addr = 0x08015448
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 11
+
+[[extra_func]]
+addr = 0x080154E4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 24
+
+[[extra_func]]
+addr = 0x08015E78
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801D8A8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801DA48
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 484
+
+[[extra_func]]
+addr = 0x080253B8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08025408
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4747
+
+[[extra_func]]
+addr = 0x08025D8C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 9
+
+[[extra_func]]
+addr = 0x08025F64
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 466
+
+[[extra_func]]
+addr = 0x080264BC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x080298DC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4
+
+[[extra_func]]
+addr = 0x08029A34
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 845
+
+[[extra_func]]
+addr = 0x08029B84
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4
+
+[[extra_func]]
+addr = 0x080489C4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 8
+
+[[extra_func]]
+addr = 0x080497D4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 3
+
+[[extra_func]]
+addr = 0x080498E0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1041
+
+[[extra_func]]
+addr = 0x0804D068
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4
+
+[[extra_func]]
+addr = 0x0804D0E4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 849
+
+[[extra_func]]
+addr = 0x08066C20
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 8
+
+[[extra_func]]
+addr = 0x08066C7C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1824
+
+[[extra_func]]
+addr = 0x080767A4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 18
+
+[[extra_func]]
+addr = 0x08076810
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1908
+
+[[extra_func]]
+addr = 0x0807698C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 18
+
+[[extra_func]]
+addr = 0x08076F8C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 419
+
+[[extra_func]]
+addr = 0x08076FA4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 116
+
+[[extra_func]]
+addr = 0x08076FBC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 419
+
+[[extra_func]]
+addr = 0x08088100
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08088450
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 66
+
+[[extra_func]]
+addr = 0x08088478
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1093
+
+[[extra_func]]
+addr = 0x080884CC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 66
+
+[[extra_func]]
+addr = 0x08089650
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 8
+
+[[extra_func]]
+addr = 0x080896B0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1698
+
+[[extra_func]]
+addr = 0x080898CC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 71
+
+[[extra_func]]
+addr = 0x080898E4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1173
+
+[[extra_func]]
+addr = 0x080898FC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 65
+
+[[extra_func]]
+addr = 0x08089B98
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x08089BFC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 968
+
+[[extra_func]]
+addr = 0x0808C2B8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808C328
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 64
+
+[[extra_func]]
+addr = 0x0808C3AC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 64
+
+[[extra_func]]
+addr = 0x0808EBD4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808EBEC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5
+
+[[extra_func]]
+addr = 0x0808EC04
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080929C8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080929E0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 135
+
+[[extra_func]]
+addr = 0x08092B18
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 135
+
+[[extra_func]]
+addr = 0x080949F4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5
+
+[[extra_func]]
+addr = 0x08094A20
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 295
+
+[[extra_func]]
+addr = 0x08094A90
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5
+
+[[extra_func]]
+addr = 0x080972C4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080972DC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 3461
+
+[[extra_func]]
+addr = 0x08097314
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080991D8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099218
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 77
+
+[[extra_func]]
+addr = 0x0809988C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 255
+
+[[extra_func]]
+addr = 0x080999FC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 19143
+
+[[extra_func]]
+addr = 0x08099BD8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 238
+
+[[extra_func]]
+addr = 0x0809C6A4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 19
+
+[[extra_func]]
+addr = 0x0809CB24
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 3
+
+[[extra_func]]
+addr = 0x0809CBA0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2981
+
+[[extra_func]]
+addr = 0x0809DAE4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809DB58
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2326
+
+[[extra_func]]
+addr = 0x080A298C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 18
+
+[[extra_func]]
+addr = 0x080A29E8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 17113
+
+[[extra_func]]
+addr = 0x080B3120
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B3AF4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x080B3BD8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4957
+
+[[extra_func]]
+addr = 0x080B3D08
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x080B550C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B5540
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 484
+
+[[extra_func]]
+addr = 0x080B5A0C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 2
+
+[[extra_func]]
+addr = 0x080B5A8C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 4596
+
+[[extra_func]]
+addr = 0x080B8E98
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1355
+
+[[extra_func]]
+addr = 0x080B9C44
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1626
+
+[[extra_func]]
+addr = 0x080BA430
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 271
+
+[[extra_func]]
+addr = 0x080BA89C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 813
+
+[[extra_func]]
+addr = 0x080BCC20
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 5298
+
+[[extra_func]]
+addr = 0x080BCC28
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 3316
+
+[[extra_func]]
+addr = 0x080C0C74
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 8413
+
+[[extra_func]]
+addr = 0x080C28D8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 7
+
+[[extra_func]]
+addr = 0x080C2968
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 105
+
+[[extra_func]]
+addr = 0x080C2A44
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 271
+
+[[extra_func]]
+addr = 0x080C2CD0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 6
+
+[[extra_func]]
+addr = 0x080C2CE4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 90
+
+
+# Additional executed targets from the second deterministic LLE diagnostic frontier.
+# Classified against the clean 4,187-function corpus before admission.
+
+[[extra_func]]
+addr = 0x080004B8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080005A4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080005B0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08001DA8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080021A8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08002280
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08002380
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08002480
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080070DC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08009058
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0800905C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08029BAC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0802A2B8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0804D11C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08066CD0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08066D60
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08066DDC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08088130
+mode = "thumb"
+resume = true
+note = "Executed interior target; generated host 0x08088120..0x08088138"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08089AEC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099988
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099AAC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099ACC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099B04
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099B60
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099BA8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809CCC8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809D260
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080A2A4C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080A2A50
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B5AD4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BD360
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BD37E
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BD384
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C6850
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C6E2C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C6E48
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C6ED0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C6F2E
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C7108
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C7308
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C74BA
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C781E
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+
+# Executed callback roots from the completed 10,000-frame third LLE diagnostic run.
+# All lie outside the preceding clean static corpus and were admitted from execution evidence.
+
+[[extra_func]]
+addr = 0x08002724
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08002870
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08009060
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08009078
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08009D6C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08009E04
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080186EC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080187D4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801BCE8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801BD14
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801D77C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801DC8C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801E424
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801EA4C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801EA64
+mode = "thumb"
+note = "Executed indirect callback target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0801F1D8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080213A0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0802337C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080233DC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080234AC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08025440
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080261D8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080263B0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08049B44
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08049F8C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0804D210
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080770EC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08077170
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080772BC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808991C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808995C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080899B0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080899F0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08089A44
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08089A80
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08089B34
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808EF40
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808F0A0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0808F12C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08092A18
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08092A70
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08097330
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08097384
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080999C8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x08099BD4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809CC2C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809CC8C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809CCCC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809CEA8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809CFE8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x0809DBA0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080A2C7C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080A2E40
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080A2F80
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B5434
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B8CE8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B8F14
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B942C
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B9CE0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B9DD8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B9ED4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080B9FD0
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BA0C8
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BA1C4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BA338
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BA448
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BA7F4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080BA8B4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C2F08
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C30D4
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C3110
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+[[extra_func]]
+addr = 0x080C7FAC
+mode = "thumb"
+note = "Executed indirect/fall-through target; new static root"
+# bridged_count = 1
+
+# Diagnostic round 4: every target below was executed on the 10,000-frame
+# menu path and byte-reviewed as a Thumb function boundary after a return,
+# literal pool, or alignment padding.
+[[extra_func]]
+addr = 0x08017F1C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801EA7C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801EB18
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801EC04
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801F1F0
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801F23C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801F5F0
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080213BC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0802141C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080214EC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080234EC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B8D00
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B8D58
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B8F2C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9CF8
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9D80
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9DF0
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9E00
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9EEC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9EFC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9FE8
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9FF8
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080BA0E0
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080BA0F0
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080BA1DC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080BA1EC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080BA350
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080BA80C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080C314C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+# Diagnostic round 5: executed on the expanded 10,000-frame menu path and
+# byte-reviewed as Thumb function boundaries.
+[[extra_func]]
+addr = 0x0801F254
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801F608
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0801F674
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x0802152C
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080235E4
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9D44
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9DB8
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080C3270
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+# Diagnostic round 6: executed on the expanded 10,000-frame menu path and
+# byte-reviewed as Thumb function boundaries.
+[[extra_func]]
+addr = 0x08021548
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x08021608
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080216DC
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080217B8
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080B9D98
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080C3294
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+# Diagnostic round 7: executed on the expanded 10,000-frame menu path and
+# byte-reviewed as Thumb function boundaries (0x080216F8 is a leaf routine).
+[[extra_func]]
+addr = 0x08021654
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080216F8
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb leaf entry"
+
+[[extra_func]]
+addr = 0x08021730
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+[[extra_func]]
+addr = 0x080217D4
+mode = "thumb"
+note = "Executed indirect callback target; reviewed Thumb prologue"
+
+# Campaign gameplay roots observed during the deterministic 15,000-frame LLE
+# diagnostic. Every address executed as a Thumb dispatch target; the generated
+# extent review classified 0x080004F4 as an interior resume and all remaining
+# entries as standalone conservative roots. No proposal was auto-merged.
+
+[[extra_func]]
+addr = 0x080004F4
+mode = "thumb"
+resume = true
+note = "Executed interior target; generated host 0x080004E8..0x08000502"
+
+[[extra_func]]
+addr = 0x080033E6
+mode = "thumb"
+resume = true
+note = "IRQ-return continuation observed by paired VBlank oracle drive; interior of 0x080033DC..0x080033F0"
+
+[[extra_func]]
+addr = 0x08009270
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009280
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009294
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009296
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009298
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080092B0
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080092C0
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009390
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080093B0
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080093B4
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080093CC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0800F664
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0800F67A
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08018D94
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08018DB8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08018DCC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08018DDE
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08018DE6
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BC08
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BC34
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BC68
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BC7E
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BC92
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BCA8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BCAA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BF38
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BF4A
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BF4C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BF50
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E0F8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E154
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E188
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E1AA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E1F8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E20A
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E210
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E24E
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E29E
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EC58
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EC6C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EC7E
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EC92
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EC9C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ECAE
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ECB2
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ECD6
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED00
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED06
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED0C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED18
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED22
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED28
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED42
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED6C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED72
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED88
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801ED90
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EE3C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EE70
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EE76
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EEAA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EED4
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EEDC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EEE2
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020508
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802051C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020522
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802052C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080205A6
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080205BA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080205CC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080205D4
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020600
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020628
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020636
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020668
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080206B4
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080206BC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080206EC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080207AC
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080207D4
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020898
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022100
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022114
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802211C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802212C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022148
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022174
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802217C
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022184
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080221BA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808BF40
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808BF58
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808BF70
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080933B0
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08093404
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08093468
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CC28
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CCA8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CD58
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CD68
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CD70
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CD8A
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CDA8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CDB8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CDBA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809CDCA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0A0
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0B0
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0B8
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0BE
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0D4
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0EA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D0FA
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D102
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D118
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D128
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D12E
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D13A
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809D148
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080BFB70
+mode = "thumb"
+note = "Executed campaign gameplay target; reviewed Thumb dispatch boundary"
+
+# Second-order campaign roots exposed only after the first gameplay batch was
+# statically generated. Each executed successfully as Thumb code in the LLE
+# diagnostic; the separate 0x03001070 RAM target remains under code-copy review.
+[[extra_func]]
+addr = 0x08009FCC
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0800A284
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080208B0
+mode = "thumb"
+note = "Executed indirect entry within the gameplay state-machine region"
+
+[[extra_func]]
+addr = 0x08020998
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080209F4
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08020A1C
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808BF90
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808BFD8
+mode = "thumb"
+note = "Executed second-order campaign target; reviewed Thumb dispatch boundary"
+
+# Combat-path roots observed by the 20,000-frame campaign-combat LLE
+# diagnostic. Every address executed as a Thumb dispatch target; ROM review
+# confirmed defined instruction boundaries (including small collision/math
+# helpers and entity-state callbacks). Dense address groups are independent
+# routines, not one contiguous jump table.
+
+[[extra_func]]
+addr = 0x08002AE8
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009118
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009128
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009140
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009158
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080092C4
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080092EC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009328
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009364
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080093D0
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080093F4
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009420
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0800944C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0800A554
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0800A590
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801BEE0
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E2AC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801E70C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EF8C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801F848
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802228C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802290C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08023508
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802357C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080235AC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802411C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804A57C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804A624
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804A8A0
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804ADFC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804AEC0
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B2F8
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B4CC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D4E0
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D56C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D670
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D720
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804DFAC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804E020
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804E14C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080888DC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080888F4
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08088938
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089390
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080893A8
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080893F8
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089E6C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089E84
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089ED4
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808D8F8
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808D910
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808D928
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808F97C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808F9EC
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809C18C
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809C2F4
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0809C348
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080B32B4
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080B33B8
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080B3594
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080B5470
+mode = "thumb"
+note = "Executed campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801EFC8
+mode = "thumb"
+note = "Executed second-order campaign-combat callback; reviewed standalone Thumb prologue after literal pool"
+
+# Second-order roots exposed after the first campaign-combat batch became
+# static. Each executed as a defined Thumb dispatch boundary in the LLE
+# diagnostic and was reviewed against the ROM.
+
+[[extra_func]]
+addr = 0x0801F860
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0801F8FC
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080222A8
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022338
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022388
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080223D8
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022928
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022988
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022A58
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802415C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B568
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B5D4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B5D8
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B690
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B704
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804B72C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BA18
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BAC4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BAD0
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BB4C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BB54
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BDA4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804BF94
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C034
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C148
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C174
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C2E4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C30C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C4B8
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C534
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C64C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804C650
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804CA64
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804CA68
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804CBD0
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804CC00
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D740
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D7B0
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D808
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804D94C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804E16C
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0804E170
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08088C58
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08088D74
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08088E84
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080892AC
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089418
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089508
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089EF4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08089FE4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808D948
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808DBC4
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808E1BC
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0808E288
+mode = "thumb"
+note = "Executed second-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+# Third-order campaign-combat closure roots. All executed as defined Thumb
+# entries in the LLE diagnostic; the 0x080090xx group is a family of distinct
+# small collision/math helpers.
+
+[[extra_func]]
+addr = 0x08009090
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080090A8
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080090C0
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080090D8
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080090F0
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08009100
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022A98
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08024178
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x080241EC
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x0802421C
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08024254
+mode = "thumb"
+note = "Executed third-order campaign-combat target; reviewed Thumb dispatch boundary"
+
+[[extra_func]]
+addr = 0x08022AB4
+mode = "thumb"
+note = "Executed fourth-order campaign-combat entity callback; reviewed standalone Thumb prologue after callback-table literal"
+
+[[jump_table]]
+addr = 0x082A9CDC
+stride = 4
+count = 6
+format = "abs32"
+entries_mode = "auto"
+name = "opening_combat_entity_state_callbacks"
+note = "Sized from the six valid states selected by the byte-indexed dispatcher at 0x08022A98; entries preserve Thumb bit"
+
+[[jump_table]]
+addr = 0x082A9B40
+stride = 4
+count = 276
+format = "abs32"
+entries_mode = "auto"
+name = "player_state_callback_registry"
+note = "Complete contiguous player-state callback registry containing the exported 0x080217FC and 0x080254B0 entries; 276 odd Thumb pointers end at 0x082A9F8C and packed state bytes begin at 0x082A9F90"
+
+[[jump_table]]
+addr = 0x082AEE10
+stride = 4
+count = 48
+format = "abs32"
+entries_mode = "auto"
+name = "opening_escort_actor_state_callbacks"
+note = "Contiguous Thumb handler block partitioned by the twelve-entry table-of-tables at 0x082AEED0; ends before non-code data at 0x082AEF00"
+
+[[jump_table]]
+addr = 0x082B18C4
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_spawn_lifecycle_callbacks"
+note = "Five valid Thumb lifecycle handlers; bounded by non-pointer object data beginning at 0x082B18D8"
+
+[[jump_table]]
+addr = 0x08290C1C
+stride = 4
+count = 8
+format = "abs32"
+entries_mode = "auto"
+name = "renderer_object_callbacks"
+note = "Eight callback fields at the head of the active renderer/object descriptor, including the exported 0x0800298C entry; packed layout data begins at 0x08290C3C"
+
+[[jump_table]]
+addr = 0x08290CEC
+stride = 4
+count = 64
+format = "abs32"
+entries_mode = "auto"
+name = "collision_response_helpers"
+note = "Complete Thumb helper table bounded by scalar data at 0x08290CE8 and zero/non-pointer lookup data at 0x08290DEC"
+
+# Four object variants selected through the table-of-tables at 0x082B6D68.
+# Each record exposes the same five-entry lifecycle callback ABI.  The root's
+# explicit count at 0x082B6D78 and the intervening scalar object data provide
+# the bounds; these are code-pointer tables, not inferred linear code starts.
+
+[[jump_table]]
+addr = 0x082B6D7C
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_variant_0_lifecycle_callbacks"
+note = "First lifecycle record referenced by the four-entry variant table at 0x082B6D68; bounded by scalar data at 0x082B6D90"
+
+[[jump_table]]
+addr = 0x082B6DB4
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_variant_1_lifecycle_callbacks"
+note = "Second lifecycle record referenced by the four-entry variant table at 0x082B6D68; next record begins at 0x082B6DC8"
+
+[[jump_table]]
+addr = 0x082B6DC8
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_variant_2_lifecycle_callbacks"
+note = "Third lifecycle record referenced by the four-entry variant table at 0x082B6D68; bounded by scalar data at 0x082B6DDC"
+
+[[jump_table]]
+addr = 0x082B6DFC
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_variant_3_lifecycle_callbacks"
+note = "Fourth lifecycle record referenced by the four-entry variant table at 0x082B6D68; bounded by scalar data at 0x082B6E10"
+
+[[jump_table]]
+addr = 0x08293C1C
+stride = 4
+count = 42
+format = "abs32"
+entries_mode = "auto"
+name = "opening_stage_sparse_object_callbacks"
+note = "Complete sparse callback registry referenced by the stage descriptor at 0x08294744; null slots are intentional and the following lookup-byte data begins at 0x08293CC4"
+
+[[jump_table]]
+addr = 0x082AF104
+stride = 4
+count = 11
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_platform_entity_callbacks"
+note = "Complete contiguous callback record referenced by the ROM literal at 0x0804D668; bounded by scalar entity data beginning at 0x082AF130"
+
+[[jump_table]]
+addr = 0x082AF0C8
+stride = 4
+count = 8
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_platform_event_callbacks"
+note = "Complete callback record containing the exported 0x0804D324 entry; eight odd Thumb pointers end at 0x082AF0E4 and scalar descriptor fields begin at 0x082AF0E8"
+
+[[jump_table]]
+addr = 0x082ACC60
+stride = 4
+count = 15
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_player_state_callbacks_08029bb0"
+note = "Complete contiguous callback array containing five intentional 0x08029BAC no-op slots and the separately exported 0x08029BB0 state callback; fifteen odd Thumb pointers end at 0x082ACC98 and packed descriptor data begins at 0x082ACC9C"
+
+[[jump_table]]
+addr = 0x082AEBE8
+stride = 4
+count = 17
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_entity_callbacks_08048c0c"
+note = "Complete contiguous callback record containing the executed 0x08048C0C entry; bounded by scalar collision/entity data beginning at 0x082AEC2C"
+
+[[extra_func]]
+addr = 0x0804906C
+mode = "thumb"
+note = "LLE-observed traversal callback; exact odd Thumb pointer literal at 0x08048C8C is stored into the entity callback field by 0x08048C40"
+
+[[jump_table]]
+addr = 0x082AF14C
+stride = 4
+count = 9
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_platform_variant_callbacks"
+note = "Complete contiguous callback record referenced by the ROM literal at 0x0804DC7C; bounded by scalar entity data beginning at 0x082AF170"
+
+[[extra_func]]
+addr = 0x0804DD18
+mode = "thumb"
+note = "LLE-observed no-op traversal callback; exact odd Thumb pointer literal at 0x0804DBB4 is stored into the entity callback field by 0x0804DB76"
+
+[[extra_func]]
+addr = 0x0809E8A4
+mode = "thumb"
+note = "LLE-observed traversal object callback; its unique odd Thumb literal at 0x0809E4D0 is stored into the callback field at 0x0809E4B8, and the target begins with a standalone prologue after a literal pool"
+
+[[jump_table]]
+addr = 0x082B18F4
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_secondary_spawn_lifecycle_callbacks"
+note = "Five valid Thumb lifecycle handlers containing the executed 0x08076D64 entry; bounded by object data at 0x082B18D8..0x082B18F0 and from 0x082B1908"
+
+[[jump_table]]
+addr = 0x082B333C
+stride = 4
+count = 9
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_effect_entity_callbacks"
+note = "Complete contiguous callback record containing the executed 0x0808858C entry; bounded by scalar state-map data at 0x082B3334..0x082B3338 and 0x082B3360"
+
+[[jump_table]]
+addr = 0x082B355C
+stride = 4
+count = 11
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_spawned_effect_callbacks"
+note = "Complete callback prefix of the descriptor containing the exported 0x0808B7A8 dispatcher; 11 odd Thumb pointers end at 0x082B3584 and packed state bytes begin at 0x082B3588"
+
+[[jump_table]]
+addr = 0x082B36CC
+stride = 4
+count = 101
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_large_effect_state_callbacks"
+note = "Complete contiguous callback registry containing the exported 0x0808DE84 entry; 101 odd Thumb pointers end at 0x082B385C and packed state data begins with 0x000D0C0B at 0x082B3860"
+
+[[jump_table]]
+addr = 0x082B3A40
+stride = 4
+count = 23
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_effect_variant_callbacks"
+note = "Complete contiguous callback array containing the runtime-selected sub-family at 0x082B3A74 and the exported 0x08092DD4 entry; 23 odd Thumb pointers end at 0x082B3A98 and packed animation/state data begins at 0x082B3A9C"
+
+[[jump_table]]
+addr = 0x082B4718
+stride = 4
+count = 120
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_object_variant_callback_registry"
+note = "Complete contiguous object-variant callback registry containing the exported 0x08095D60 entry; 120 odd Thumb pointers end at 0x082B48F4 and packed variant data begins with 0x24072408 at 0x082B48F8"
+
+[[extra_func]]
+addr = 0x08092EAC
+mode = "thumb"
+note = "LLE-observed effect lifecycle callback; exact odd Thumb pointer literal at 0x08092E24 is loaded by 0x08092DD4 and passed to the runtime object callback initializer"
+
+[[jump_table]]
+addr = 0x082BB1C8
+stride = 4
+count = 3
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_system_sequence_callbacks"
+note = "Three callback fields at the head of the active descriptor, including the exported 0x080BD0E4 sequence handler; resource/data pointers begin at 0x082BB1D4"
+
+[[jump_table]]
+addr = 0x082B54F0
+stride = 4
+count = 13
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_enemy_entity_callbacks"
+note = "Complete contiguous callback record containing the executed 0x0809E3FC entry; bounded by scalar entity data through 0x082B54EC and state-index bytes beginning at 0x082B5524"
+
+[[jump_table]]
+addr = 0x082B549C
+stride = 4
+count = 5
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_enemy_lifecycle_callbacks_0809e1e8"
+note = "Complete five-entry lifecycle callback header containing the exported 0x0809E1E8 entry; scalar object data begins at 0x082B54B0"
+
+[[jump_table]]
+addr = 0x082B64E4
+stride = 4
+count = 12
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_late_enemy_callbacks"
+note = "Complete contiguous callback record beginning with the exported 0x080AA70C entry; 12 odd Thumb pointers end at 0x082B6510 and scalar collision/entity data begins at 0x082B6514"
+
+[[jump_table]]
+addr = 0x082B65EC
+stride = 4
+count = 8
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_late_enemy_variant_callbacks"
+note = "Complete contiguous callback record containing the runtime-installed 0x080AB554 entry; eight odd Thumb pointers end at 0x082B6608 and scalar entity data begins at 0x082B660C"
+
+[[jump_table]]
+addr = 0x082B5428
+stride = 4
+count = 7
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_enemy_variant_callbacks"
+note = "Complete callback prefix of the fixed-width entity descriptor containing the exported 0x0809DC70 entry; seven odd Thumb pointers end at 0x082B5440 and scalar flags begin at 0x082B5444"
+
+[[jump_table]]
+addr = 0x082B5460
+stride = 4
+count = 8
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_enemy_variant_2_callbacks"
+note = "Complete callback prefix of the next fixed-width entity descriptor containing the exported 0x0809DF00 entry; eight odd Thumb pointers end at 0x082B547C and scalar flags begin at 0x082B5480"
+
+[[jump_table]]
+addr = 0x082B52A0
+stride = 4
+count = 29
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_complex_enemy_callbacks"
+note = "Complete contiguous callback registry containing the exported 0x0809D41C entry; 29 odd Thumb pointers end at 0x082B5310 and fixed-width descriptor flags begin at 0x082B5314"
+
+[[jump_table]]
+addr = 0x0829FF8C
+stride = 4
+count = 36
+format = "abs32"
+entries_mode = "auto"
+name = "opening_stage_service_callbacks"
+note = "Complete sparse callback registry containing the LLE-executed 0x0801550C entry; one null slot at 0x0829FFF0 is intentional and scalar/render data begins at 0x082A001C"
+
+[[jump_table]]
+addr = 0x082A98A4
+stride = 4
+count = 7
+format = "abs32"
+entries_mode = "auto"
+name = "traversal_player_action_callbacks"
+note = "Complete seven-entry callback array selected by the player action dispatcher at 0x0801EA64; contains the LLE-exported 0x0801EADC entry and ends at 0x082A98BC before the separate repeated callback matrix at 0x082A98C0"
+
+[[jump_table]]
+addr = 0x082AA424
+stride = 4
+count = 7
+format = "abs32"
+entries_mode = "auto"
+name = "charged_saber_action_callbacks"
+note = "Complete seven-entry player action callback table containing the charge-jump-selected 0x08026110 entry; scalar descriptor data begins with 0x05000000 at 0x082AA440"

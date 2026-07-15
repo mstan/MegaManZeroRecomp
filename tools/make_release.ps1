@@ -7,7 +7,7 @@ README. It never contains a ROM, GBA BIOS, save data, generated source, or
 developer configuration.
 
 Usage:
-  powershell -File tools\make_release.ps1 -Version 0.0.1
+  powershell -File tools\make_release.ps1 -Version 0.0.2
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Version,
@@ -19,7 +19,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
-    throw "Version must look like 0.0.1 (received '$Version')."
+    throw "Version must look like 0.0.2 (received '$Version')."
 }
 
 $mingwBin = 'C:\msys64\mingw64\bin'
@@ -115,6 +115,22 @@ included in this archive.
 Keyboard: arrows = D-pad, Z = A, X = B, A = L, S = R, Enter = Start,
 Right Shift = Select, Tab = fast-forward. Shift+F1-F9 saves a state; F1-F9
 loads one.
+
+## Optional widescreen
+
+The faithful default is 240x160. To opt into the recommended 288x160 view,
+create a ``game.toml`` file next to the executable containing:
+
+    [video]
+    view_width = 288
+
+You can instead launch ``MegaManZeroRecomp.exe --view-width 288``. Widths up to
+480 are accepted; 480x160 is the exact-2x diagnostic/research view. The window
+is resizable and preserves the configured aspect ratio.
+
+Known v$Version limitation: loading a save state in widescreen can temporarily
+desynchronize the extended presentation. Dying and choosing Retry, or another
+normal room reload, rebuilds it. SRAM saves and 240x160 mode are unaffected.
 
 Project: https://github.com/mstan/MegaManZeroRecomp
 Engine: https://github.com/mstan/gbarecomp

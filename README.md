@@ -3,7 +3,7 @@
 Static recompilation of **Mega Man Zero** (Game Boy Advance) to native PC,
 built on the [`gbarecomp`](https://github.com/mstan/gbarecomp) framework.
 
-> **Status — playable static-first bring-up (v0.0.1)**
+> **Status — playable static-first bring-up (v0.0.2)**
 >
 > Mega Man Zero boots through the real GBA BIOS, reaches gameplay, has working
 > controls, audio, and persistent SRAM, and is comfortable to play in the
@@ -41,7 +41,7 @@ The runtime hash-gates the ROM before execution.
 
 ## Quick start
 
-1. Download `MegaManZeroRecomp-windows-x64-v0.0.1.zip` from
+1. Download `MegaManZeroRecomp-windows-x64-v0.0.2.zip` from
    [Releases](../../releases) and extract the whole folder.
 2. Run `MegaManZeroRecomp.exe`.
 3. Select your own legally obtained Mega Man Zero (USA) ROM and GBA BIOS dump
@@ -66,26 +66,56 @@ Save states use **Shift+F1–F9** to save and **F1–F9** to load.
 
 ## Experimental extended view
 
-The faithful default remains 240x160. An opt-in extended view can be selected
-with `--view-width 288`; widths from 240 through 320 are accepted, with
-tile-aligned 288x160 the current test target.
+The faithful default remains 240x160. Widescreen is deliberately opt-in and
+can be enabled persistently by creating a `game.toml` beside the executable:
+
+```toml
+[video]
+view_width = 288
+```
+
+For a one-off launch, use `MegaManZeroRecomp.exe --view-width 288`. The
+`GBARECOMP_VIEW_WIDTH` environment variable is also supported and has the
+highest priority. Set the width back to `240` to restore faithful presentation.
+
+Widths from 240 through 480 are accepted; height remains 160 and a resized
+window preserves the selected logical aspect ratio. Tile-aligned 288x160
+remains the recommended target.
+The 384x160 view is a progressive-validation target, while exact-2x 480x160 is
+a research mode that can reveal authored scenery and encounter assumptions far
+beyond the original camera. Both still require whole-game route coverage.
 
 The enhancement executes Mega Man Zero's original guest full-reload and
 incremental background streamers at shifted margin positions and keeps their
 generated tilemaps in presentation-only caches. It widens all twelve original
 guest OAM clipping paths through reviewed ROM-literal overrides and extends OBJ
-X interpretation only in the wide PPU path. The authentic live maps, CPU state,
-timing state, and center 240 pixels are restored unchanged: synthetic guest
-writes are journaled and rolled back, device writes are suppressed, and stack
-use is canary-checked. Margin caches re-seed after save-state loads, authentic
-full reloads, and coordinate discontinuities. Unsupported PPU layouts,
-non-uniform window effects, inactive stage scenes, stage-behavior transitions,
-camera bounds, and authored outer-map edges fail closed to black margins.
+X interpretation only in the wide PPU path. The original stage spawn manager
+also scans its original spawn table with tile-quantized horizontal activation
+bounds extended by the selected view width; entity creation, flags, and culling
+remain guest LLE. During active gameplay, Zero's authentic BG0 HUD is anchored
+to the extended left content edge and a boss gauge is anchored to the right;
+menus and faithful 240x160 presentation remain unchanged. The authentic live
+maps, CPU state, timing state, and world-layer center are preserved: synthetic
+guest writes are journaled and rolled back, device writes are suppressed, and
+stack use is canary-checked.
+Margin caches invalidate after save-state loads, authentic full reloads, and
+coordinate discontinuities, then re-seed from subsequent guest streamers.
+Unsupported PPU layouts, non-uniform window
+effects, inactive stage scenes, stage-behavior transitions, camera bounds, and
+authored outer-map edges fail closed to black margins.
 
 This remains experimental rather than a whole-game widescreen guarantee.
-Actor spawn/cull windows and the 128-entry OAM budget remain authentic and may
-still expose game-specific pop-in under wider or untested routes. Use 240x160
-for the faithful view; 288x160 is the conservative enhanced target.
+The common stage activation window is extended, but entity-specific creation
+and deletion rules, scripted encounters, and the 128-entry OAM budget remain
+authentic and may still expose game-specific pop-in under wider or untested
+routes. Use 240x160 for the faithful view and 288x160 for the recommended
+enhanced view. Treat 384x160 as progressive validation and 480x160 as an
+exact-2x diagnostic, not as whole-game-supported modes.
+
+Known v0.0.2 limitation: loading a save state while widescreen is active can
+temporarily leave the extended presentation caches out of sync. A normal room
+reload (including dying and choosing Retry) rebuilds them correctly. SRAM saves
+and faithful 240x160 presentation are unaffected.
 
 ## Static coverage and fallback
 
@@ -215,7 +245,7 @@ With the generated corpus present, produce the same ROM/BIOS-free Windows zip
 used by GitHub Releases:
 
 ```powershell
-powershell -File tools\make_release.ps1 -Version 0.0.1
+powershell -File tools\make_release.ps1 -Version 0.0.2
 ```
 
 The archive contains the stripped executable, four runtime DLLs, a local

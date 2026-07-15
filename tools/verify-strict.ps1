@@ -1,6 +1,6 @@
 param(
     [int]$Frames = 10000,
-    [ValidateRange(240, 320)]
+    [ValidateRange(240, 480)]
     [int]$ViewWidth = 240,
     [string]$InputProfile = 'menu',
     [string]$BuildDir = (Join-Path $PSScriptRoot '..\build'),

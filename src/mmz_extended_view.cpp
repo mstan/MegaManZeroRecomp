@@ -34,6 +34,15 @@ constexpr std::uint32_t kScreenX = 0x082915ECu;
 constexpr std::uint32_t kRoomGrid = 0x082921ECu;
 constexpr std::uint32_t kDescriptorFamilies = 0x08293BECu;
 constexpr std::uint32_t kVariantSelectors = 0x02005208u;
+constexpr std::uint32_t kHudState = 0x02023640u;
+constexpr std::uint32_t kPlayerHudDraw = 0x080BC48Cu;
+constexpr std::uint32_t kBossHudDraw = 0x080BC680u;
+// UpdateSpawnManager's ordered spawn-point scans use strict camera-X +/- 12
+// metatile bounds. These are the three decoded immediate sites, independently
+// identified in MMZ1 and corroborated by RMZ3's UpdateSpawnManager decomp.
+constexpr std::uint32_t kSpawnLeftBoundInitial = 0x0800E2D2u;
+constexpr std::uint32_t kSpawnLeftBoundForward = 0x0800E2FEu;
+constexpr std::uint32_t kSpawnRightBound = 0x0800E31Cu;
 constexpr std::size_t kMapBytes = 0x1000u;
 constexpr std::uint32_t kSyntheticReturn = 0xF0000001u;
 
@@ -66,16 +75,59 @@ std::uint32_t g_bg1_data = 0;
 std::int32_t g_bg1_camera_x = 0;
 int (*g_previous_rom_override)(std::uint32_t, std::uint32_t,
                                std::uint32_t*) = nullptr;
+RuntimeThumbAluImmediateOverride g_previous_thumb_alu_imm_override = nullptr;
 int (*g_previous_obj_x_provider)(int, int*) = nullptr;
+int (*g_previous_bg_x_provider)(int, int, int, int*) = nullptr;
 std::array<bool, 12> g_obj_clip_literal_seen{};
+std::array<bool, 3> g_spawn_bound_seen{};
 unsigned long long g_seen_state_epoch = 0;
 std::array<std::array<std::int32_t, 2>, 3> g_last_layer_position{};
 std::array<bool, 3> g_last_layer_position_valid{};
 int g_last_pillarbox = -1;
 int g_last_pillarbox_left = -1;
 int g_last_pillarbox_right = -1;
+bool g_player_hud_pending = false;
+bool g_boss_hud_pending = false;
+bool g_player_hud_active = false;
+bool g_boss_hud_active = false;
 
 bool trace_enabled();
+
+int thumb_alu_immediate_override(std::uint32_t pc, std::uint32_t original,
+                                 std::uint32_t* out_value) {
+    if (out_value && original == 12u) {
+        unsigned extra_cells = 0;
+        std::size_t trace_index = 0;
+        if (pc == kSpawnLeftBoundInitial) {
+            extra_cells = (g_extra_left + 15u) / 16u;
+            trace_index = 0;
+        } else if (pc == kSpawnLeftBoundForward) {
+            extra_cells = (g_extra_left + 15u) / 16u;
+            trace_index = 1;
+        } else if (pc == kSpawnRightBound) {
+            extra_cells = (g_extra_right + 15u) / 16u;
+            trace_index = 2;
+        } else {
+            return g_previous_thumb_alu_imm_override
+                ? g_previous_thumb_alu_imm_override(pc, original, out_value)
+                : 0;
+        }
+        // Return zero for the native-width case so the generated instruction
+        // consumes its compile-time operand exactly as before.
+        if (extra_cells != 0u) {
+            *out_value = 12u + extra_cells;
+            if (trace_enabled() && !g_spawn_bound_seen[trace_index]) {
+                g_spawn_bound_seen[trace_index] = true;
+                std::fprintf(stderr,
+                    "[mmz:extended-view] widened spawn immediate "
+                    "%08X: %u -> %u\n", pc, original, *out_value);
+            }
+            return 1;
+        }
+    }
+    return g_previous_thumb_alu_imm_override
+        ? g_previous_thumb_alu_imm_override(pc, original, out_value) : 0;
+}
 
 constexpr std::array<std::uint32_t, 12> kObjClipLiterals = {
     0x08002264u, 0x08002360u, 0x08002460u, 0x0800257Cu,
@@ -115,6 +167,51 @@ int extended_obj_x(int raw_x, int* out_x) {
     }
     return g_previous_obj_x_provider
         ? g_previous_obj_x_provider(raw_x, out_x) : 0;
+}
+
+int anchored_hud_bg_x(int bg, int output_x, int screen_y, int* out_hw_x) {
+    auto fallback = [&]() {
+        return g_previous_bg_x_provider
+            ? g_previous_bg_x_provider(bg, output_x, screen_y, out_hw_x) : 0;
+    };
+    if (bg != 0 || !out_hw_x || gba::g_ws_pillarbox ||
+        (g_extra_left == 0 && g_extra_right == 0)) {
+        return fallback();
+    }
+
+    const int left = static_cast<int>(g_extra_left);
+    const int view_width = static_cast<int>(240u + g_extra_left + g_extra_right);
+
+    // 0x080BC48C authors Zero's complete BG0 cluster in columns 0..2: HP,
+    // emblem, weapon icons, and rank. Present those authentic samples at the
+    // extended content edge and suppress the old centered copy. If that side
+    // is intentionally pillarboxed, retain the native position so the PPU's
+    // final black margin cannot cover the HUD.
+    if (g_player_hud_active && g_extra_left != 0 &&
+        !gba::g_ws_pillarbox_left) {
+        constexpr int kPlayerWidth = 24;
+        if (output_x >= 0 && output_x < kPlayerWidth) {
+            *out_hw_x = output_x;
+            return 1;
+        }
+        if (output_x >= left && output_x < left + kPlayerWidth) return -1;
+    }
+
+    // 0x080BC680 authors the boss gauge in columns 28..29 (X=224..239).
+    if (g_boss_hud_active && g_extra_right != 0 &&
+        !gba::g_ws_pillarbox_right) {
+        constexpr int kBossSourceX = 224;
+        constexpr int kBossWidth = 16;
+        const int destination = view_width - kBossWidth;
+        if (output_x >= destination && output_x < view_width) {
+            *out_hw_x = kBossSourceX + output_x - destination;
+            return 1;
+        }
+        const int original = left + kBossSourceX;
+        if (output_x >= original && output_x < original + kBossWidth)
+            return -1;
+    }
+    return fallback();
 }
 
 bool trace_enabled() {
@@ -194,15 +291,14 @@ bool peek32(const gba::GbaBus& bus, std::uint32_t addr,
     return true;
 }
 
-struct BehaviorCell {
+struct AuthoredCell {
     std::uint32_t descriptor = 0;
-    std::uint16_t word = 0;
 };
 
-bool resolve_behavior_cell(const gba::GbaBus& bus, std::uint32_t fixed_x,
-                           std::uint32_t fixed_y, BehaviorCell& out) {
+bool resolve_authored_cell(const gba::GbaBus& bus, std::uint32_t fixed_x,
+                           std::uint32_t fixed_y, AuthoredCell& out) {
     // Side-effect-free mirror of the descriptor-selection prefix at
-    // 0x08006D48..0x08006D7C and its behavior-grid indexing. The guest's full
+    // 0x08006D48..0x08006D7C and its authored-grid indexing. The guest's full
     // resolver continues into tileset/palette side effects, so presentation
     // safety checks must not dispatch it speculatively.
     if (fixed_x > 0x00770FFFu || fixed_y > 0x004F5FFFu) return false;
@@ -226,11 +322,9 @@ bool resolve_behavior_cell(const gba::GbaBus& bus, std::uint32_t fixed_x,
     std::uint32_t origin_x = 0;
     std::uint32_t origin_y = 0;
     std::uint32_t header = 0;
-    std::uint32_t behavior = 0;
     if (!peek32(bus, descriptor + 0x6Cu, origin_x) ||
         !peek32(bus, descriptor + 0x70u, origin_y) ||
-        !peek32(bus, descriptor + 0x74u, header) ||
-        !peek32(bus, descriptor + 0x7Cu, behavior)) return false;
+        !peek32(bus, descriptor + 0x74u, header)) return false;
     const std::int64_t local_x = static_cast<std::int64_t>(fixed_x >> 8) -
         static_cast<std::int64_t>(origin_x) * 240;
     const std::int64_t local_y = static_cast<std::int64_t>(fixed_y >> 8) -
@@ -244,41 +338,39 @@ bool resolve_behavior_cell(const gba::GbaBus& bus, std::uint32_t fixed_x,
                cell_y)) return false;
     std::uint8_t cells_w = 0;
     std::uint8_t cells_h = 0;
-    std::uint16_t row_shift = 0;
     if (!peek8(bus, header + 2u, cells_w) ||
         !peek8(bus, header + 3u, cells_h) ||
-        cell_x >= cells_w || cell_y >= cells_h ||
-        !peek16(bus, behavior, row_shift) || row_shift >= 16u) return false;
-    const std::uint32_t index =
-        (static_cast<std::uint32_t>(cell_y) << row_shift) + cell_x;
-    std::uint16_t word = 0;
-    if (!peek16(bus, behavior + 8u + index * 2u, word)) return false;
-    out = {descriptor, word};
+        cell_x >= cells_w || cell_y >= cells_h) return false;
+    out = {descriptor};
     return true;
 }
 
-constexpr std::uint32_t kBehaviorCellFixed = 16u << 8;
+constexpr std::uint32_t kAuthoredCellFixed = 16u << 8;
 
-constexpr std::uint32_t behavior_cells_crossed(std::uint32_t first,
-                                                std::uint32_t last) {
+constexpr std::uint32_t authored_cells_crossed(std::uint32_t first,
+                                               std::uint32_t last) {
     return first <= last
-        ? last / kBehaviorCellFixed - first / kBehaviorCellFixed + 1u
+        ? last / kAuthoredCellFixed - first / kAuthoredCellFixed + 1u
         : 0u;
 }
 
-static_assert(behavior_cells_crossed(0u, kBehaviorCellFixed - 1u) == 1u);
-static_assert(behavior_cells_crossed(kBehaviorCellFixed - 1u,
-                                     kBehaviorCellFixed) == 2u);
-static_assert(behavior_cells_crossed(3u * kBehaviorCellFixed + 7u,
-                                     5u * kBehaviorCellFixed + 9u) == 3u);
+static_assert(authored_cells_crossed(0u, kAuthoredCellFixed - 1u) == 1u);
+static_assert(authored_cells_crossed(kAuthoredCellFixed - 1u,
+                                     kAuthoredCellFixed) == 2u);
+static_assert(authored_cells_crossed(3u * kAuthoredCellFixed + 7u,
+                                     5u * kAuthoredCellFixed + 9u) == 3u);
 
-// Prove that every behavior cell intersected by the widened strip has the
-// same descriptor and behavior word as the authentic edge at the same Y.
+// Prove that every authored cell intersected by the widened strip belongs to
+// the same room descriptor as the authentic edge at the same Y.
 // Sampling the first covered coordinate in each globally aligned 16-pixel
-// cell is sufficient because resolve_behavior_cell is constant within that
-// cell. Walking the full X/Y grid catches internal A -> B -> A transitions
-// that an endpoint or top/middle/bottom test would miss.
-bool behavior_strip_matches_edge(const gba::GbaBus& bus,
+// cell is sufficient because descriptor selection and authored-grid bounds
+// are constant within that cell. Collision/behavior words deliberately are
+// not compared: ramps, hazards, and platforms legitimately change those
+// words inside one room, and using them as a presentation boundary made a
+// whole side flicker to black when the viewport crossed a 16-pixel row.
+// Walking the full X/Y grid still catches internal A -> B -> A descriptor
+// transitions that an endpoint or top/middle/bottom test would miss.
+bool authored_strip_matches_edge(const gba::GbaBus& bus,
                                  std::uint32_t authentic_x,
                                  std::uint32_t outer_x,
                                  std::uint32_t top_y,
@@ -288,25 +380,24 @@ bool behavior_strip_matches_edge(const gba::GbaBus& bus,
         authentic_x < outer_x ? authentic_x : outer_x;
     const std::uint32_t last_x =
         authentic_x < outer_x ? outer_x : authentic_x;
-    const std::uint32_t first_x_cell = first_x / kBehaviorCellFixed;
-    const std::uint32_t last_x_cell = last_x / kBehaviorCellFixed;
-    const std::uint32_t first_y_cell = top_y / kBehaviorCellFixed;
-    const std::uint32_t last_y_cell = bottom_y / kBehaviorCellFixed;
+    const std::uint32_t first_x_cell = first_x / kAuthoredCellFixed;
+    const std::uint32_t last_x_cell = last_x / kAuthoredCellFixed;
+    const std::uint32_t first_y_cell = top_y / kAuthoredCellFixed;
+    const std::uint32_t last_y_cell = bottom_y / kAuthoredCellFixed;
 
     for (std::uint32_t y_cell = first_y_cell;; ++y_cell) {
         const std::uint32_t y = y_cell == first_y_cell
-            ? top_y : y_cell * kBehaviorCellFixed;
-        BehaviorCell authentic{};
-        if (!resolve_behavior_cell(bus, authentic_x, y, authentic))
+            ? top_y : y_cell * kAuthoredCellFixed;
+        AuthoredCell authentic{};
+        if (!resolve_authored_cell(bus, authentic_x, y, authentic))
             return false;
 
         for (std::uint32_t x_cell = first_x_cell;; ++x_cell) {
             const std::uint32_t x = x_cell == first_x_cell
-                ? first_x : x_cell * kBehaviorCellFixed;
-            BehaviorCell candidate{};
-            if (!resolve_behavior_cell(bus, x, y, candidate) ||
-                authentic.descriptor != candidate.descriptor ||
-                authentic.word != candidate.word) {
+                ? first_x : x_cell * kAuthoredCellFixed;
+            AuthoredCell candidate{};
+            if (!resolve_authored_cell(bus, x, y, candidate) ||
+                authentic.descriptor != candidate.descriptor) {
                 return false;
             }
             if (x_cell == last_x_cell) break;
@@ -333,6 +424,10 @@ void reset_presentation_caches() {
     for (auto& call : g_observed) call.valid = false;
     g_layout_signature_valid.fill(false);
     g_last_layer_position_valid.fill(false);
+    g_player_hud_pending = false;
+    g_boss_hud_pending = false;
+    g_player_hud_active = false;
+    g_boss_hud_active = false;
 }
 
 void write32_iwram(gba::GbaBus& bus, std::uint32_t addr, std::uint32_t value) {
@@ -543,7 +638,19 @@ void extended_view_hook(std::uint32_t pc) {
         g_seen_state_epoch = g_runtime_state_epoch;
         reset_presentation_caches();
     }
+    if (pc == kPlayerHudDraw && g_cpu.R[0] == kHudState) {
+        g_player_hud_pending = read32(*bus, kHudState + 4u) != 0;
+    } else if (pc == kBossHudDraw && g_cpu.R[0] == kHudState) {
+        g_boss_hud_pending = read32(*bus, kHudState + 8u) != 0;
+    }
     if (pc == kPpuPublish) {
+        // These exact guest routines are reached only when DrawStatus authors
+        // the corresponding BG0 tiles. Latch that LLE fact for the published
+        // frame; stale menu/text maps never opt into HUD anchoring.
+        g_player_hud_active = g_player_hud_pending;
+        g_boss_hud_active = g_boss_hud_pending;
+        g_player_hud_pending = false;
+        g_boss_hud_pending = false;
         const std::uint8_t* io = bus->io().raw();
         auto io16 = [io](std::uint32_t off) {
             return static_cast<std::uint16_t>(
@@ -599,7 +706,7 @@ void extended_view_hook(std::uint32_t pc) {
                     if (g_extra_left != 0) {
                         const std::uint32_t delta = g_extra_left << 8;
                         const bool safe_left = world_left >= delta &&
-                            behavior_strip_matches_edge(
+                            authored_strip_matches_edge(
                                 *bus, world_left, world_left - delta,
                                 world_top, world_bottom);
                         gba::g_ws_pillarbox_left |= !safe_left;
@@ -607,7 +714,7 @@ void extended_view_hook(std::uint32_t pc) {
                     if (g_extra_right != 0) {
                         const std::uint32_t authentic_right =
                             world_left + (239u << 8);
-                        const bool safe_right = behavior_strip_matches_edge(
+                        const bool safe_right = authored_strip_matches_edge(
                             *bus, authentic_right,
                             authentic_right + (g_extra_right << 8),
                             world_top, world_bottom);
@@ -816,6 +923,7 @@ void install_extended_view(unsigned extra_left, unsigned extra_right) {
     g_seen_state_epoch = g_runtime_state_epoch;
     reset_presentation_caches();
     g_last_pillarbox = g_last_pillarbox_left = g_last_pillarbox_right = -1;
+    g_spawn_bound_seen.fill(false);
     gba::g_ws_pillarbox = 1;
     gba::g_ws_pillarbox_left = 0;
     gba::g_ws_pillarbox_right = 0;
@@ -827,6 +935,16 @@ void install_extended_view(unsigned extra_left, unsigned extra_right) {
     if (gba::g_ws_obj_x_provider != extended_obj_x) {
         g_previous_obj_x_provider = gba::g_ws_obj_x_provider;
         gba::g_ws_obj_x_provider = extended_obj_x;
+    }
+    if (gba::g_ws_bg_x_provider != anchored_hud_bg_x) {
+        g_previous_bg_x_provider = gba::g_ws_bg_x_provider;
+        gba::g_ws_bg_x_provider = anchored_hud_bg_x;
+    }
+    if ((extra_left != 0u || extra_right != 0u) &&
+        g_runtime_thumb_alu_imm_override != thumb_alu_immediate_override) {
+        g_previous_thumb_alu_imm_override =
+            g_runtime_thumb_alu_imm_override;
+        g_runtime_thumb_alu_imm_override = thumb_alu_immediate_override;
     }
     if (g_runtime_fn_entry_hook == extended_view_hook) return;
     g_previous_hook = g_runtime_fn_entry_hook;

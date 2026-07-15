@@ -22,6 +22,20 @@ codegen_shards = 16
 sha1 = "193b14120119162518a73c70876f0b8bffdbd96e"
 md5 = "b24a17d080a01a404cbf018ba42b9803"
 
+# Exact reviewed THUMB ALU-immediate sites used by the opt-in extended-view
+# spawn envelope. All other generated immediates remain compile-time literals.
+[[thumb_alu_immediate_override]]
+addr = 0x0800E2D2
+note = "UpdateSpawnManager initial left scan: camera metatile X - 12"
+
+[[thumb_alu_immediate_override]]
+addr = 0x0800E2FE
+note = "UpdateSpawnManager forward left scan: camera metatile X - 12"
+
+[[thumb_alu_immediate_override]]
+addr = 0x0800E31C
+note = "UpdateSpawnManager right scan: camera metatile X + 12"
+
 [bios]
 path = "../gbarecomp/bios/gba_bios.bin"
 sha1 = "300c20df6731a33952ded8c436f7f186d25d3492"
@@ -43,7 +57,8 @@ window_title = "MegaManZeroRecomp"
 [video]
 screen = "frontlit"
 # Authentic 240x160 remains the default. Mega Man Zero advertises an opt-in
-# extended-view capability; 288x160 is the current tile-aligned test target.
+# extended-view capability through 480x160 for progressive experiments;
+# 288x160 remains the recommended tile-aligned target.
 view_width = 240
 
 [audio]
@@ -146,6 +161,12 @@ start = 0x08002380
 end = 0x080023B8
 mode = "thumb"
 note = "LLE-observed IRQ return inside the renderer callback; cover the reviewed generated host extent"
+
+[[resume_range]]
+start = 0x080880C4
+end = 0x080880DA
+mode = "thumb"
+note = "LLE-observed IRQ return inside the reviewed enemy update host when widened stage activation makes the entity active earlier"
 
 [[extra_func]]
 addr = 0x080004EA

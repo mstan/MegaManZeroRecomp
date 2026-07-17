@@ -12,7 +12,10 @@ Usage:
 param(
     [Parameter(Mandatory = $true)][string]$Version,
     [string]$BuildDir = 'build-release',
-    [string]$GbarecompRoot = (Join-Path $PSScriptRoot '..\gbarecomp'),
+    # Empty => the in-repo gbarecomp submodule (resolved in the body, where
+    # $PSScriptRoot is reliably populated — it can be empty in a param
+    # default under some invocation shells, e.g. powershell -File).
+    [string]$GbarecompRoot = '',
     [ValidateRange(1, 32)][int]$Jobs = 4
 )
 
@@ -23,7 +26,9 @@ if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') {
 }
 
 $mingwBin = 'C:\msys64\mingw64\bin'
-$root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = (Resolve-Path (Join-Path $scriptDir '..')).Path
+if (-not $GbarecompRoot) { $GbarecompRoot = Join-Path $root 'gbarecomp' }
 $engine = (Resolve-Path $GbarecompRoot).Path
 $build = Join-Path $root $BuildDir
 $out = Join-Path $root 'release-stage'

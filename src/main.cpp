@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
     opts.max_view_width = 480;
     opts.extended_view_init = mmz::install_extended_view;
     opts.launcher_region = "USA";
+    opts.launcher_game_config = "game.toml";   // prefill ROM/BIOS from [rom]/[bios]
     opts.launcher_save_path = "saves/megaman_zero_usa.sav";  // game.toml [save].path
     // Extended-view aspect cycle (EXPERIMENTAL-tagged in the launcher, the
     // snesrecomp/psxrecomp widescreen convention): every width the runtime's

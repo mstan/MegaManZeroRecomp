@@ -88,6 +88,15 @@ foreach ($dll in $dlls) {
     Copy-Item -LiteralPath $source -Destination $stage
 }
 
+# recomp-ui launcher assets (fonts + img TGAs incl. this game's box art),
+# staged next to the exe by recomp_target_launcher_ui's POST_BUILD. The
+# launcher loads them from <exe>\assets\ at runtime.
+$assets = Join-Path $build 'assets'
+if (-not (Test-Path -LiteralPath (Join-Path $assets 'img'))) {
+    throw "recomp-ui launcher assets missing: $assets (build with GBAGAME_RECOMP_UI=ON)"
+}
+Copy-Item -LiteralPath $assets -Destination $stage -Recurse
+
 & (Join-Path $engine 'tools\fetch_tcc.ps1') `
     -Toolchain (Join-Path $stage 'overlay_toolchain') -EngineRoot $engine
 if ($LASTEXITCODE -ne 0) { throw "Overlay toolchain staging failed ($LASTEXITCODE)." }

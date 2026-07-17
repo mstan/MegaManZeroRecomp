@@ -12,7 +12,7 @@ Usage:
 param(
     [Parameter(Mandatory = $true)][string]$Version,
     [string]$BuildDir = 'build-release',
-    [string]$GbarecompRoot = (Join-Path $PSScriptRoot '..\..\gbarecomp'),
+    [string]$GbarecompRoot = (Join-Path $PSScriptRoot '..\gbarecomp'),
     [ValidateRange(1, 32)][int]$Jobs = 4
 )
 

@@ -689,8 +689,10 @@ void extended_view_hook(std::uint32_t pc) {
                 ((bgcnt >> 14) & 3u) == 1u &&
                 ((bgcnt >> 8) & 31u) == expected_bases[layer];
         }
-        const bool layout_ok = layout_supported && g_seen_layers == 0x7u &&
-            g_layers_updated_since_publish != 0u;
+        // The guest only streams a strip when a layer moves. Captured margin
+        // maps remain valid until the existing transition/layout/teleport
+        // invalidation paths clear them, so a still camera must stay wide.
+        const bool layout_ok = layout_supported && g_seen_layers == 0x7u;
         gba::g_ws_pillarbox = layout_ok ? 0 : 1;
         gba::g_ws_pillarbox_left = 0;
         gba::g_ws_pillarbox_right = 0;

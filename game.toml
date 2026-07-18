@@ -60,6 +60,10 @@ screen = "frontlit"
 # extended-view capability through 480x160 for progressive experiments;
 # 288x160 remains the recommended tile-aligned target.
 view_width = 240
+# Alternative experimental policy: derive logical width continuously from the
+# live window/fullscreen aspect ratio (240..480) while keeping height at 160.
+# When true, this takes precedence over the fixed view_width above.
+resize_view = false
 
 [audio]
 shadow = false

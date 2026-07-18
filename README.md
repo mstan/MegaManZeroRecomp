@@ -67,7 +67,10 @@ Save states use **Shift+F1–F9** to save and **F1–F9** to load.
 ## Experimental extended view
 
 The faithful default remains 240x160. Widescreen is deliberately opt-in and
-can be enabled persistently by creating a `game.toml` beside the executable:
+supports two elective policies: a fixed logical width, or an adaptive width
+that follows the live window aspect ratio.
+
+For a fixed width, create a `game.toml` beside the executable:
 
 ```toml
 [video]
@@ -78,9 +81,23 @@ For a one-off launch, use `MegaManZeroRecomp.exe --view-width 288`. The
 `GBARECOMP_VIEW_WIDTH` environment variable is also supported and has the
 highest priority. Set the width back to `240` to restore faithful presentation.
 
-Widths from 240 through 480 are accepted; height remains 160 and a resized
-window preserves the selected logical aspect ratio. Tile-aligned 288x160
-remains the recommended target.
+For adaptive resizing, use `MegaManZeroRecomp.exe --resize-view` or set:
+
+```toml
+[video]
+resize_view = true
+```
+
+Without a fixed width, the window opens at the native 3:2 size. Combining
+adaptive mode with `view_width` uses that width as the initial window aspect,
+then live resizing continuously adjusts the logical framebuffer from 240 up to
+480 pixels while retaining the 160-line height. The launcher Aspect ratio row
+provides this initial width. Adaptive fullscreen instead follows the display
+and ignores the saved fixed aspect for that launch.
+
+Fixed widths from 240 through 480 are accepted; height remains 160 and a
+resized window preserves the selected logical aspect ratio. Tile-aligned
+288x160 remains the recommended fixed target.
 The 384x160 view is a progressive-validation target, while exact-2x 480x160 is
 a research mode that can reveal authored scenery and encounter assumptions far
 beyond the original camera. Both still require whole-game route coverage.

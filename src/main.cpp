@@ -15,11 +15,12 @@ namespace {
 void print_usage() {
     std::printf(
         "MegaManZeroRecomp [--bios <path>] [--rom <path>] "
-        "[--view-width <240..480>] [game.toml]\n"
+        "[--view-width <240..480>] [--resize-view] [game.toml]\n"
         "The BIOS and ROM must match the SHA-1 identities in game.toml.\n"
         "View width defaults to the faithful 240; 288 is the recommended "
         "experimental extended view. 384 is a progressive test width; "
-        "480 is an exact-2x research mode.\n");
+        "480 is an exact-2x research mode. --resize-view instead follows "
+        "the live window aspect ratio.\n");
 }
 
 }  // namespace
@@ -40,6 +41,12 @@ int main(int argc, char** argv) {
     // launcher's GAME card uses it for its "ROM verified" check.
     opts.builtin_rom_crc32 = 0x9707D2A1u;
     opts.max_view_width = 480;
+    // Keep the validated fixed-width modes while also exposing an elective
+    // adaptive policy. In adaptive mode the logical height remains 160 and
+    // the live drawable aspect selects a width from 240 through 480.
+    opts.max_resize_view_width = 480;
+    opts.resize_driven_view = true;
+    opts.launcher_expose_adaptive_view = true;
     opts.extended_view_init = mmz::install_extended_view;
     opts.launcher_region = "USA";
     opts.launcher_game_config = "game.toml";   // prefill ROM/BIOS from [rom]/[bios]

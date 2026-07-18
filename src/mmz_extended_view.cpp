@@ -12,6 +12,9 @@
 #include "runtime_arm.h"
 #include "runtime_bus_bridge.h"
 
+extern "C" unsigned g_ws_extra_left;
+extern "C" unsigned g_ws_extra_right;
+
 namespace mmz {
 namespace {
 
@@ -631,6 +634,26 @@ void extended_view_hook(std::uint32_t pc) {
         return;
     }
     if (g_previous_hook) g_previous_hook(pc);
+
+    // Fixed-width sessions never change these values after installation.
+    // Resize-driven sessions update the runtime globals whenever the drawable
+    // aspect changes. Adopt that geometry before running any more guest-side
+    // presentation work, and discard maps synthesized for the prior offsets.
+    if (g_extra_left != g_ws_extra_left ||
+        g_extra_right != g_ws_extra_right) {
+        g_extra_left = g_ws_extra_left;
+        g_extra_right = g_ws_extra_right;
+        reset_presentation_caches();
+        g_last_pillarbox = g_last_pillarbox_left =
+            g_last_pillarbox_right = -1;
+        if (trace_enabled()) {
+            std::fprintf(stderr,
+                "[mmz:extended-view] live geometry changed: margins=%u/%u "
+                "logical=%ux160\n",
+                g_extra_left, g_extra_right,
+                240u + g_extra_left + g_extra_right);
+        }
+    }
 
     gba::GbaBus* bus = gbarecomp::active_bus();
     if (!bus) return;

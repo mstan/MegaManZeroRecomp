@@ -177,13 +177,39 @@ int anchored_hud_bg_x(int bg, int output_x, int screen_y, int* out_hw_x) {
         return g_previous_bg_x_provider
             ? g_previous_bg_x_provider(bg, output_x, screen_y, out_hw_x) : 0;
     };
-    if (bg != 0 || !out_hw_x || gba::g_ws_pillarbox ||
-        (g_extra_left == 0 && g_extra_right == 0)) {
+    if (!out_hw_x || (g_extra_left == 0 && g_extra_right == 0)) {
         return fallback();
     }
 
     const int left = static_cast<int>(g_extra_left);
     const int view_width = static_cast<int>(240u + g_extra_left + g_extra_right);
+
+    // The prologue illustration is a static BG1 panel underneath BG0
+    // subtitles. Extend its edge pixels into the adaptive margins without
+    // scaling the character artwork or moving the text/OBJ layers.
+    if (bg == 1) {
+        gba::GbaBus* bus = gbarecomp::active_bus();
+        if (bus) {
+            const std::uint8_t* io = bus->io().raw();
+            const std::uint16_t dispcnt = static_cast<std::uint16_t>(
+                io[0] | (static_cast<std::uint16_t>(io[1]) << 8));
+            const std::uint16_t bg1cnt = static_cast<std::uint16_t>(
+                io[0x0A] | (static_cast<std::uint16_t>(io[0x0B]) << 8));
+            if (dispcnt == 0x1300u && bg1cnt == 0x0284u) {
+                if (output_x < left) {
+                    *out_hw_x = 0;
+                    return 1;
+                }
+                if (output_x >= left + 240) {
+                    *out_hw_x = 239;
+                    return 1;
+                }
+            }
+        }
+        return fallback();
+    }
+
+    if (bg != 0 || gba::g_ws_pillarbox) return fallback();
 
     // 0x080BC48C authors Zero's complete BG0 cluster in columns 0..2: HP,
     // emblem, weapon icons, and rank. Present those authentic samples at the
@@ -693,9 +719,13 @@ void extended_view_hook(std::uint32_t pc) {
         // maps remain valid until the existing transition/layout/teleport
         // invalidation paths clear them, so a still camera must stay wide.
         const bool layout_ok = layout_supported && g_seen_layers == 0x7u;
+        gba::g_ws_authored_margin_layers = layout_ok ? 1 : 0;
         gba::g_ws_pillarbox = layout_ok ? 0 : 1;
         gba::g_ws_pillarbox_left = 0;
         gba::g_ws_pillarbox_right = 0;
+        const bool illustrated_prologue =
+            dispcnt == 0x1300u && io16(0x0Au) == 0x0284u;
+        if (illustrated_prologue) gba::g_ws_pillarbox = 0;
         if (layout_ok) {
             // MMZ's ChunkMap header is stride, default chunk, authored width,
             // authored height. The streamer uses stride for row addressing;

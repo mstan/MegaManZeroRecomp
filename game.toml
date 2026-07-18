@@ -3857,3 +3857,101 @@ format = "abs32"
 entries_mode = "auto"
 name = "charged_saber_action_callbacks"
 note = "Complete seven-entry player action callback table containing the charge-jump-selected 0x08026110 entry; scalar descriptor data begins with 0x05000000 at 0x082AA440"
+
+# Strict-static closure from the reviewed AZCE self-heal proposal.
+# Standalone function roots remain normal extra_func entries; interior PCs are
+# resume aliases so their containing native function is not split.
+
+[[extra_func]]
+addr = 0x0801BF34
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb leaf"
+
+[[extra_func]]
+addr = 0x0801E9CC
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"
+
+[[extra_func]]
+addr = 0x0801EA44
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; interior branch target in 0x0801E9CC"
+
+[[extra_func]]
+addr = 0x08020304
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"
+
+[[extra_func]]
+addr = 0x08020318
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; continuation inside 0x08020304"
+
+[[extra_func]]
+addr = 0x08020324
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; continuation inside 0x08020304"
+
+[[extra_func]]
+addr = 0x0802033A
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; branch target inside 0x08020304"
+
+[[extra_func]]
+addr = 0x0802036C
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; epilogue inside 0x08020304"
+
+[[extra_func]]
+addr = 0x0802037C
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"
+
+[[extra_func]]
+addr = 0x080203A8
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; branch target inside 0x0802037C"
+
+[[extra_func]]
+addr = 0x08020430
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"
+
+[[extra_func]]
+addr = 0x08020440
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; continuation inside 0x08020430"
+
+[[extra_func]]
+addr = 0x08020450
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"
+
+[[extra_func]]
+addr = 0x08020478
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; continuation inside 0x08020450"
+
+[[extra_func]]
+addr = 0x080204A0
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"
+
+[[extra_func]]
+addr = 0x080204B0
+mode = "thumb"
+resume = true
+note = "Reviewed self-heal target; continuation inside 0x080204A0"
+
+[[extra_func]]
+addr = 0x080204C0
+mode = "thumb"
+note = "Reviewed self-heal target; standalone Thumb function"

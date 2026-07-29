@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(GBARECOMP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/gbarecomp"
     CACHE PATH "Path to the sibling gbarecomp checkout")
+set(RECOMP_UI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui"
+    CACHE PATH "Path to the shared recomp-ui checkout")
+set(GBARECOMP_RUNTIME_UI_ROOT "${RECOMP_UI_ROOT}"
+    CACHE PATH "recomp-ui root used by the live GBA runtime adapter")
 if(NOT EXISTS "${GBARECOMP_ROOT}/CMakeLists.txt")
     message(FATAL_ERROR
         "GBARECOMP_ROOT is not a gbarecomp checkout:\n"
@@ -71,7 +75,7 @@ target_compile_definitions(MegaManZeroRecomp PRIVATE
 # ─────────────────────────────────────────────────────────────────────
 option(GBAGAME_RECOMP_UI "Build the recomp-ui pre-boot launcher" ON)
 if(GBAGAME_RECOMP_UI)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui/recomp_ui.cmake)
+    include(${RECOMP_UI_ROOT}/recomp_ui.cmake)
     add_library(game_launcher_ui STATIC src/game_launcher_boot.cpp)
     target_include_directories(game_launcher_ui PRIVATE
         "${GBARECOMP_ROOT}/src/runtime"   # launcher_seam.h + runtime.h
@@ -80,6 +84,7 @@ if(GBAGAME_RECOMP_UI)
     )
     # sources, includes, RECOMP_LAUNCHER, asset staging
     recomp_target_launcher_ui(game_launcher_ui
+        CONSOLE gba
         BOXART ${CMAKE_CURRENT_SOURCE_DIR}/recomp/launcher/boxart.tga)
     find_package(SDL2 REQUIRED)
     target_link_libraries(game_launcher_ui PUBLIC SDL2::SDL2)

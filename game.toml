@@ -40,6 +40,10 @@ note = "UpdateSpawnManager right scan: camera metatile X + 12"
 path = "../gbarecomp/bios/gba_bios.bin"
 sha1 = "300c20df6731a33952ded8c436f7f186d25d3492"
 hle = false
+# Skip the BIOS boot logo/chime on every launch. This is the boot-state
+# handoff only — SWI servicing stays pure LLE (hle = false above), so the
+# recompiled real BIOS remains the correctness oracle.
+skip_intro = true
 
 [rom]
 path = "roms/megaman_zero_usa.gba"
@@ -3955,3 +3959,94 @@ note = "Reviewed self-heal target; continuation inside 0x080204A0"
 addr = 0x080204C0
 mode = "thumb"
 note = "Reviewed self-heal target; standalone Thumb function"
+
+# ─────────────────────────────────────────────────────────────────────
+# BIOS intro skip ([bios].skip_intro) coverage.
+#
+# Skipping the boot logo/chime hands off to the cart at a different point
+# in the frame, which shifts IRQ arrival relative to guest code. The
+# hardware then returns into interior instructions of already-generated
+# functions that the real-intro boot never interrupted. Every address
+# below was OBSERVED as a dispatch miss on the deterministic menu,
+# campaign-combat, and campaign-clear routes with skip_intro = true, and
+# every one resolves inside an existing generated function (none is a new
+# function entry) — so they are resume aliases, not [[extra_func]] splits.
+# ─────────────────────────────────────────────────────────────────────
+
+[[extra_func]]
+addr = 0x08000708
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x08000708"
+
+[[extra_func]]
+addr = 0x08001454
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function rooted at 0x08001434"
+
+[[extra_func]]
+addr = 0x080021F8
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x080021F8"
+
+[[resume_range]]
+start = 0x080023D8
+end = 0x0800240C
+mode = "thumb"
+note = "skip_intro IRQ returns at several interior instructions of the renderer callback, past the existing 0x08002380-0x080023B8 range; end is exclusive, so it sits one Thumb instruction past the last observed return"
+
+[[extra_func]]
+addr = 0x08002760
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x08002760"
+
+[[extra_func]]
+addr = 0x08002CA6
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x08002CA6"
+
+[[resume_range]]
+start = 0x0800408E
+end = 0x080040CE
+mode = "thumb"
+note = "skip_intro IRQ returns at several interior instructions of one function; cover the reviewed generated host extent"
+
+[[resume_range]]
+start = 0x08004154
+end = 0x0800415C
+mode = "thumb"
+note = "skip_intro IRQ returns at two adjacent interior instructions; cover the reviewed generated host extent"
+
+[[extra_func]]
+addr = 0x08088134
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x08088134"
+
+[[extra_func]]
+addr = 0x080B561C
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x080B561C"
+
+[[extra_func]]
+addr = 0x080B56CC
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x080B56CC (highest-frequency miss: bridged x16)"
+
+[[extra_func]]
+addr = 0x080B58C0
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x080B58C0"
+
+[[extra_func]]
+addr = 0x080B59C0
+mode = "thumb"
+resume = true
+note = "skip_intro IRQ return inside the function containing 0x080B59C0"

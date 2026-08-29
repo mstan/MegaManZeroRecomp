@@ -1,0 +1,24 @@
+format_version = 1
+id = "mega-man-zero.enhancement.adaptive-view"
+version = "1.0.0"
+name = "Mega Man Zero Adaptive Widescreen"
+author = "mstan"
+description = "Expands the stage view using Mega Man Zero's own background streamers, spawn manager, and HUD anchoring while keeping menus and faithful presentation native."
+license = "MIT"
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "mega-man-zero-us"
+rom_sha1 = "193b14120119162518a73c70876f0b8bffdbd96e"
+
+[[feature]]
+id = "adaptive-view"
+name = "Adaptive Widescreen"
+description = "Expand supported stage scenes from 240x160 (native 3:2) up to 480x160 (3:1), following the live window or fullscreen aspect ratio."
+group = "Display"
+default_enabled = false
+
+[[plugin]]
+feature = "adaptive-view"
+id = "mega-man-zero.adaptive-view"

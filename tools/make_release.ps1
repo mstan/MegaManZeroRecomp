@@ -102,6 +102,16 @@ if (-not (Test-Path -LiteralPath (Join-Path $assets 'img'))) {
 }
 Copy-Item -LiteralPath $assets -Destination $stage -Recurse
 
+# Game-owned mod catalog (the disabled-by-default Adaptive Widescreen
+# package), staged next to the exe by the POST_BUILD copy. The launcher seam
+# resolves the catalog at <exe>\mods\, so without this the shipped build has
+# an empty Mods page. Data only -- no ROM-derived content.
+$mods = Join-Path $build 'mods'
+if (-not (Test-Path -LiteralPath (Join-Path $mods 'packages'))) {
+    throw "Mod catalog missing: $mods (build with GBARECOMP_ENABLE_MODS=ON)"
+}
+Copy-Item -LiteralPath $mods -Destination $stage -Recurse
+
 & (Join-Path $engine 'tools\fetch_tcc.ps1') `
     -Toolchain (Join-Path $stage 'overlay_toolchain') -EngineRoot $engine
 if ($LASTEXITCODE -ne 0) { throw "Overlay toolchain staging failed ($LASTEXITCODE)." }

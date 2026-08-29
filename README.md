@@ -50,13 +50,38 @@ The runtime hash-gates the ROM before execution.
 
 ## Quick start
 
-1. Download `MegaManZeroRecomp-windows-x64-v0.0.2.zip` from
+1. Download `MegaManZeroRecomp-windows-x64-v0.0.4.zip` from
    [Releases](../../releases) and extract the whole folder.
 2. Run `MegaManZeroRecomp.exe`.
 3. Select your own legally obtained Mega Man Zero (USA) ROM and GBA BIOS dump
    when prompted. Their paths are cached for future launches.
 4. Play. SRAM saves, save states, and native coverage caches stay beside the
    extracted runner.
+
+The BIOS boot logo and chime are skipped by default so launching goes straight
+into the game. This is the boot handoff only: SWIs are still serviced by the
+recompiled real BIOS (LLE), which remains the correctness oracle. A GBA BIOS
+dump is still required. To restore the authentic boot animation, set
+
+```toml
+[bios]
+skip_intro = false
+```
+
+or launch with `MegaManZeroRecomp.exe --no-bios-skip-intro`.
+
+## Mods
+
+The launcher's **Mods** page lists game-owned enhancements. Mega Man Zero ships
+one, disabled by default:
+
+- **Adaptive Widescreen** (Display) — expand supported stage scenes from
+  240x160 up to 480x160, following the live window or fullscreen aspect ratio.
+  See [Experimental extended view](#experimental-extended-view) for exactly what
+  this does and what it does not guarantee.
+
+Enabling it there is authoritative over the `--resize-view` / `[video]` inputs.
+User-installed `.gbamod` archives join the same catalog.
 
 ## Controls
 

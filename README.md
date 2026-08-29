@@ -50,7 +50,7 @@ The runtime hash-gates the ROM before execution.
 
 ## Quick start
 
-1. Download `MegaManZeroRecomp-windows-x64-v0.0.5.zip` from
+1. Download `MegaManZeroRecomp-windows-x64-v0.0.6.zip` from
    [Releases](../../releases) and extract the whole folder.
 2. Run `MegaManZeroRecomp.exe`.
 3. Select your own legally obtained Mega Man Zero (USA) ROM and GBA BIOS dump

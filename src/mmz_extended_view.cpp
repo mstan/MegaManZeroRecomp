@@ -172,6 +172,35 @@ int extended_obj_x(int raw_x, int* out_x) {
         ? g_previous_obj_x_provider(raw_x, out_x) : 0;
 }
 
+// True when the guest has WIN0 enabled and `screen_y` falls inside its
+// vertical band.
+//
+// MMZ draws the message box on BG0 and confines it with WIN0 (WININ selects
+// BG0 only inside the window), so WIN0's band IS the guest's own statement of
+// "these scanlines are the message window, not the HUD". The HUD anchoring
+// below republishes BG0 columns 0..23 and 224..239 into the extended margins;
+// on message rows those very columns hold the box border and its leading
+// glyphs, so anchoring them drags the start of the message into the margin.
+// Anchoring must therefore skip these rows and let the margin fall back.
+bool message_window_row(int screen_y) {
+    gba::GbaBus* bus = gbarecomp::active_bus();
+    if (!bus) return false;
+    const std::uint8_t* io = bus->io().raw();
+    auto io16 = [io](std::uint32_t off) {
+        return static_cast<std::uint16_t>(
+            io[off] | (static_cast<std::uint16_t>(io[off + 1]) << 8));
+    };
+    const std::uint16_t dispcnt = io16(0x00u);
+    if ((dispcnt & 0x2000u) == 0) return false;   // WIN0 disabled
+    const std::uint16_t win0v = io16(0x44u);
+    const int top = static_cast<int>(win0v >> 8);
+    const int bottom = static_cast<int>(win0v & 0xFFu);
+    // GBATEK: Y2 is exclusive. A wrapped/degenerate band (bottom <= top, or
+    // bottom past the screen) covers to the bottom of the display.
+    if (bottom <= top || bottom > 160) return screen_y >= top;
+    return screen_y >= top && screen_y < bottom;
+}
+
 int anchored_hud_bg_x(int bg, int output_x, int screen_y, int* out_hw_x) {
     auto fallback = [&]() {
         return g_previous_bg_x_provider
@@ -210,6 +239,12 @@ int anchored_hud_bg_x(int bg, int output_x, int screen_y, int* out_hw_x) {
     }
 
     if (bg != 0 || gba::g_ws_pillarbox) return fallback();
+
+    // Both HUD anchors below are x-only rules, but the HUD they republish
+    // occupies only its own scanlines. Applying them to a message-window row
+    // republishes the box's leading/trailing tiles into the margin instead.
+    // Fail closed on those rows.
+    if (message_window_row(screen_y)) return fallback();
 
     // 0x080BC48C authors Zero's complete BG0 cluster in columns 0..2: HP,
     // emblem, weapon icons, and rank. Present those authentic samples at the

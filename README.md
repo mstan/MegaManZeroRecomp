@@ -303,6 +303,11 @@ The archive contains the stripped executable, four runtime DLLs, a local
 overlay toolchain for native self-healing, and a player README. It does not
 contain the ROM, BIOS, save data, symbols, config, or generated source.
 
+## License
+
+PolyForm Noncommercial 1.0.0 — see [`LICENSE`](LICENSE). Third-party
+components retain their own licenses.
+
 ## Legal
 
 Mega Man Zero and related names are trademarks of Capcom. This unaffiliated,

@@ -40,13 +40,24 @@ int main(int argc, char** argv) {
     // CRC32 of the pinned USA ROM (same dump the SHA-1 gates on); the
     // launcher's GAME card uses it for its "ROM verified" check.
     opts.builtin_rom_crc32 = 0x9707D2A1u;
+    // Opt into the data-only .gbamod package catalog. Packages target this
+    // stable ID plus builtin_rom_sha1 and may activate only the trusted
+    // callbacks registered in src/mods/.
+    opts.mod_game_id = "mega-man-zero-us";
+    // The adaptive-view implementation stays game-owned, but its activation is
+    // authoritative in Mods rather than the generic Display settings.
+    opts.mod_owns_adaptive_view = true;
     opts.max_view_width = 480;
     // Keep the validated fixed-width modes while also exposing an elective
     // adaptive policy. In adaptive mode the logical height remains 160 and
     // the live drawable aspect selects a width from 240 through 480.
     opts.max_resize_view_width = 480;
     opts.resize_driven_view = true;
-    opts.launcher_expose_adaptive_view = true;
+    // Adaptive activation now lives on the Mods page (mod_owns_adaptive_view),
+    // so the generic Display toggle would be a second, non-authoritative
+    // control for the same capability. The fixed-width aspect vocabulary below
+    // remains a separate axis and stays on Display.
+    opts.launcher_expose_adaptive_view = false;
     opts.extended_view_init = mmz::install_extended_view;
     opts.launcher_region = "USA";
     opts.launcher_game_config = "game.toml";   // prefill ROM/BIOS from [rom]/[bios]

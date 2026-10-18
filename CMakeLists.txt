@@ -11,6 +11,13 @@ set(RECOMP_UI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/recomp-ui"
     CACHE PATH "Path to the shared recomp-ui checkout")
 set(GBARECOMP_RUNTIME_UI_ROOT "${RECOMP_UI_ROOT}"
     CACHE PATH "recomp-ui root used by the live GBA runtime adapter")
+# Mega Man Zero exposes its game-owned adaptive extended view through the
+# package catalog rather than the generic Display settings. Setting this before
+# add_subdirectory() lets gbarecomp link the mod runtime and open recomp-ui's
+# otherwise inert Mods gate.
+set(GBARECOMP_ENABLE_MODS ON CACHE BOOL
+    "Enable Mega Man Zero's built-in mod catalog and GBA mod packages" FORCE)
+
 if(NOT EXISTS "${GBARECOMP_ROOT}/CMakeLists.txt")
     message(FATAL_ERROR
         "GBARECOMP_ROOT is not a gbarecomp checkout:\n"
@@ -33,6 +40,7 @@ file(GLOB GAME_GENERATED_SOURCES CONFIGURE_DEPENDS
 add_executable(MegaManZeroRecomp
     src/main.cpp
     src/mmz_extended_view.cpp
+    src/mods/mmz_adaptive_view_plugin.cpp
     ${GAME_GENERATED_SOURCES}
 )
 
@@ -82,6 +90,14 @@ if(GBAGAME_RECOMP_UI)
         "${GBARECOMP_ROOT}/src/gba"
         src
     )
+    # This lib deliberately does NOT link gbarecomp_runtime, so it does not
+    # inherit that target's PUBLIC GBARECOMP_ENABLE_MODS. Without this the
+    # launcher seam compiles its mod provider out and the Mods page never
+    # appears, even with the catalog staged and the runtime built with mods.
+    if(GBARECOMP_ENABLE_MODS)
+        target_compile_definitions(game_launcher_ui PRIVATE
+            GBARECOMP_ENABLE_MODS=1)
+    endif()
     # sources, includes, RECOMP_LAUNCHER, asset staging
     recomp_target_launcher_ui(game_launcher_ui
         CONSOLE gba
@@ -93,6 +109,18 @@ if(GBAGAME_RECOMP_UI)
     endif()
     target_link_libraries(MegaManZeroRecomp PRIVATE game_launcher_ui)
     set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS GBAGAME_RECOMP_UI)
+endif()
+
+# Ship the game-owned, disabled-by-default adaptive-view package beside the
+# executable. The launcher seam resolves the catalog at <exe dir>/mods, and
+# user-installed .gbamod archives join this same catalog.
+set(MMZ_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
+if(EXISTS "${MMZ_PRELOADED_MODS}/packages")
+    add_custom_command(TARGET MegaManZeroRecomp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${MMZ_PRELOADED_MODS}"
+            "$<TARGET_FILE_DIR:MegaManZeroRecomp>/mods"
+        COMMENT "Preloading the Mega Man Zero mod catalog")
 endif()
 
 if(MSVC)

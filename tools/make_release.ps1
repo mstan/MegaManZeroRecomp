@@ -70,8 +70,8 @@ $env:PATH = "$mingwBin;$env:PATH"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 & "$mingwBin\cmake.exe" -S $root -B $build -G Ninja `
-    -DCMAKE_C_COMPILER="$mingwBin/cc.exe" `
-    -DCMAKE_CXX_COMPILER="$mingwBin/c++.exe" `
+    -DCMAKE_C_COMPILER="$mingwBin/gcc.exe" `
+    -DCMAKE_CXX_COMPILER="$mingwBin/g++.exe" `
     -DCMAKE_MAKE_PROGRAM="$mingwBin/ninja.exe" `
     -DCMAKE_BUILD_TYPE=Release `
     "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG" `
@@ -96,6 +96,7 @@ if ($LASTEXITCODE -ne 0) { throw "strip failed ($LASTEXITCODE)." }
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
+Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination $stage
 foreach ($dll in $dlls) {
     $source = Join-Path $mingwBin $dll
     if (-not (Test-Path -LiteralPath $source)) { throw "Runtime DLL is missing: $source" }
@@ -151,15 +152,10 @@ loads one.
 
 ## Optional widescreen
 
-The faithful default is 240x160. To opt into the recommended 288x160 view,
-create a ``game.toml`` file next to the executable containing:
-
-    [video]
-    view_width = 288
-
-You can instead launch ``MegaManZeroRecomp.exe --view-width 288``. Widths up to
-480 are accepted; 480x160 is the exact-2x diagnostic/research view. The window
-is resizable and preserves the configured aspect ratio.
+Open Mods, enable Adaptive Widescreen, and choose Fit to screen. Apply the
+selection and resize the game window to reveal additional scenery. Native
+240x160 remains the default in a fresh extraction. Fixed wider views can also
+be selected in the mod settings.
 
 Known v$Version limitation: loading a save state in widescreen can temporarily
 desynchronize the extended presentation. Dying and choosing Retry, or another

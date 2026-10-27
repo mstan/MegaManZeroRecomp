@@ -1029,6 +1029,11 @@ void install_extended_view(unsigned extra_left, unsigned extra_right) {
     if (gba::g_ws_bg_x_provider != anchored_hud_bg_x) {
         g_previous_bg_x_provider = gba::g_ws_bg_x_provider;
         gba::g_ws_bg_x_provider = anchored_hud_bg_x;
+        // This provider remaps BG0 HUD and the BG1 prologue panel only.
+        // With no chained provider, leave world layers eligible for native
+        // tile rows instead of invoking a known no-op for every pixel.
+        if (!g_previous_bg_x_provider) gba::g_ws_bg_x_provider_layers = 0x3u;
+        else gba::g_ws_bg_x_provider_layers |= 0x3u;
     }
     if ((extra_left != 0u || extra_right != 0u) &&
         g_runtime_thumb_alu_imm_override != thumb_alu_immediate_override) {

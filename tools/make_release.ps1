@@ -16,6 +16,8 @@ param(
     # $PSScriptRoot is reliably populated — it can be empty in a param
     # default under some invocation shells, e.g. powershell -File).
     [string]$GbarecompRoot = '',
+    [string]$RecompUiRoot = '',
+    [string]$GeneratedBiosDir = '',
     [ValidateRange(1, 32)][int]$Jobs = 4
 )
 
@@ -30,6 +32,10 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = (Resolve-Path (Join-Path $scriptDir '..')).Path
 if (-not $GbarecompRoot) { $GbarecompRoot = Join-Path $root 'gbarecomp' }
 $engine = (Resolve-Path $GbarecompRoot).Path
+if (-not $RecompUiRoot) { $RecompUiRoot = Join-Path $root 'recomp-ui' }
+$ui = (Resolve-Path -LiteralPath $RecompUiRoot).Path
+if (-not $GeneratedBiosDir) { $GeneratedBiosDir = Join-Path $engine 'src\runtime\generated_bios' }
+$generatedBiosPath = (Resolve-Path -LiteralPath $GeneratedBiosDir).Path
 $build = Join-Path $root $BuildDir
 $out = Join-Path $root 'release-stage'
 $target = 'MegaManZeroRecomp'
@@ -46,8 +52,8 @@ foreach ($required in @(
     (Join-Path $mingwBin 'strip.exe'),
     (Join-Path $engine 'CMakeLists.txt'),
     (Join-Path $engine 'tools\fetch_tcc.ps1'),
-    (Join-Path $engine 'src\runtime\generated_bios\bios_recompiled.cpp'),
-    (Join-Path $engine 'src\runtime\generated_bios\bios_recompiled.h')
+    (Join-Path $generatedBiosPath 'bios_recompiled.cpp'),
+    (Join-Path $generatedBiosPath 'bios_recompiled.h')
 )) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Required release dependency is missing: $required"
@@ -63,20 +69,23 @@ if ($generated.Count -eq 0) {
 $env:PATH = "$mingwBin;$env:PATH"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
-& cmake -S $root -B $build -G Ninja `
+& "$mingwBin\cmake.exe" -S $root -B $build -G Ninja `
     -DCMAKE_C_COMPILER="$mingwBin/cc.exe" `
     -DCMAKE_CXX_COMPILER="$mingwBin/c++.exe" `
     -DCMAKE_MAKE_PROGRAM="$mingwBin/ninja.exe" `
     -DCMAKE_BUILD_TYPE=Release `
-    "-DCMAKE_CXX_FLAGS_RELEASE=-O1 -DNDEBUG" `
+    "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG" `
     -DGBARECOMP_ROOT="$engine" `
+    "-DGBARECOMP_GENERATED_BIOS_DIR=$generatedBiosPath" `
+    "-DRECOMP_UI_ROOT=$ui" `
+    "-DGBARECOMP_RUNTIME_UI_ROOT=$ui" `
     -DGBARECOMP_BUILD_ORACLE=OFF `
     -DGBARECOMP_MINGW_PREFIX_UNIX='/c/msys64/mingw64' `
     -DSDL2_INCLUDE_DIR='C:/msys64/mingw64/include/SDL2' `
     -DSDL2_LIBRARY='C:/msys64/mingw64/lib/libSDL2.dll.a'
 if ($LASTEXITCODE -ne 0) { throw "Release configure failed ($LASTEXITCODE)." }
 
-& cmake --build $build --target $target --parallel $Jobs
+& "$mingwBin\cmake.exe" --build $build --target $target --parallel $Jobs
 if ($LASTEXITCODE -ne 0) { throw "Release build failed ($LASTEXITCODE)." }
 
 $exe = Join-Path $build "$target.exe"

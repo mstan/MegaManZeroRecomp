@@ -74,6 +74,13 @@ target_link_libraries(MegaManZeroRecomp PRIVATE
     gbarecomp_armv4t
     "-Wl,--end-group")
 
+add_executable(mmz_wide_hud_rows_tests EXCLUDE_FROM_ALL
+    tests/wide_hud_rows_test.cpp "${GBARECOMP_ROOT}/tools/bios_smoke/dispatch_stub.cpp")
+target_include_directories(mmz_wide_hud_rows_tests PRIVATE
+    "${GBARECOMP_ROOT}/src/gba" "${GBARECOMP_ROOT}/src/debug"
+    "${GBARECOMP_ROOT}/src/runtime" "${GBARECOMP_ROOT}/src/armv4t" "${GBARECOMP_ROOT}/src/link")
+target_link_gbarecomp_runtime_stack(mmz_wide_hud_rows_tests)
+
 target_compile_definitions(MegaManZeroRecomp PRIVATE
     GBARECOMP_DEFAULT_DEBUG_PORT=19862
     GBARECOMP_WINDOW_TITLE="MegaManZeroRecomp"

@@ -1,6 +1,7 @@
 #include "mmz_extended_view.h"
 
 #include <array>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -276,6 +277,42 @@ int anchored_hud_bg_x(int bg, int output_x, int screen_y, int* out_hw_x) {
             return -1;
     }
     return fallback();
+}
+
+// Publish the complete row mapping once. The scalar provider remains the
+// oracle and fallback; its only X discontinuities are the two native edges
+// and the original/relocated player and boss HUD intervals. No guest code or
+// device state advances while the PPU consumes this immutable row.
+int anchored_hud_bg_x_row(int bg, int screen_y, int out_width, int,
+                          gba::WsBgXSpan* spans, int capacity) {
+    if (!spans || capacity < 1 || out_width < 1 || g_previous_bg_x_provider ||
+        gba::g_ws_bg_x_provider != anchored_hud_bg_x) return -1;
+    const int left = static_cast<int>(g_extra_left);
+    const int view_width = static_cast<int>(240u + g_extra_left + g_extra_right);
+    std::array<int, 8> edges{0, out_width, 24, left, left + 24,
+                             left + 224, left + 240, view_width - 16};
+    for (auto& edge : edges) edge = std::clamp(edge, 0, out_width);
+    std::sort(edges.begin(), edges.end());
+    const auto last = std::unique(edges.begin(), edges.end());
+    int count = 0;
+    for (auto begin = edges.begin(); begin + 1 < last; ++begin) {
+        if (count == capacity) return -1;
+        const int first_x = *begin, end_x = *(begin + 1);
+        int source = 0;
+        const int action = anchored_hud_bg_x(bg, first_x, screen_y, &source);
+        int step = 1;
+        if (action == 1 && end_x - first_x > 1) {
+            int next_source = 0, last_source = 0;
+            if (anchored_hud_bg_x(bg, first_x + 1, screen_y, &next_source) != action ||
+                anchored_hud_bg_x(bg, end_x - 1, screen_y, &last_source) != action)
+                return -1;
+            step = next_source - source;
+            if (step < 0 || step > 1 || last_source != source + step * (end_x - first_x - 1))
+                return -1;
+        }
+        spans[count++] = {first_x, end_x, source, step, action};
+    }
+    return count;
 }
 
 bool trace_enabled() {
@@ -1008,6 +1045,9 @@ int margin_tilemap_provider(int bg, int hw_x, int screen_y,
 }  // namespace
 
 void install_extended_view(unsigned extra_left, unsigned extra_right) {
+    // A reinstall may change the hidden previous-provider delegate while the
+    // public pointer is unchanged. Revoke the old promise before rebuilding it.
+    gba::clear_read_only_wide_bg_providers();
     g_extra_left = extra_left;
     g_extra_right = extra_right;
     g_seen_state_epoch = g_runtime_state_epoch;
@@ -1034,6 +1074,13 @@ void install_extended_view(unsigned extra_left, unsigned extra_right) {
         // tile rows instead of invoking a known no-op for every pixel.
         if (!g_previous_bg_x_provider) gba::g_ws_bg_x_provider_layers = 0x3u;
         else gba::g_ws_bg_x_provider_layers |= 0x3u;
+    }
+    if (!g_previous_bg_x_provider && !gba::g_ws_bg_xy_provider &&
+        gba::g_ws_tilemap_provider == margin_tilemap_provider &&
+        gba::g_ws_bg_x_provider == anchored_hud_bg_x) {
+        // Both callbacks only read the published HUD/maps and current IO.
+        // margin_tilemap_provider selects one entry per scrolled 8x8 cell.
+        gba::publish_read_only_wide_bg_providers(anchored_hud_bg_x_row, true);
     }
     if ((extra_left != 0u || extra_right != 0u) &&
         g_runtime_thumb_alu_imm_override != thumb_alu_immediate_override) {

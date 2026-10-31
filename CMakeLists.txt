@@ -74,6 +74,13 @@ target_link_libraries(MegaManZeroRecomp PRIVATE
     gbarecomp_armv4t
     "-Wl,--end-group")
 
+add_executable(mmz_wide_hud_rows_tests EXCLUDE_FROM_ALL
+    tests/wide_hud_rows_test.cpp "${GBARECOMP_ROOT}/tools/bios_smoke/dispatch_stub.cpp")
+target_include_directories(mmz_wide_hud_rows_tests PRIVATE
+    "${GBARECOMP_ROOT}/src/gba" "${GBARECOMP_ROOT}/src/debug"
+    "${GBARECOMP_ROOT}/src/runtime" "${GBARECOMP_ROOT}/src/armv4t" "${GBARECOMP_ROOT}/src/link")
+target_link_gbarecomp_runtime_stack(mmz_wide_hud_rows_tests)
+
 target_compile_definitions(MegaManZeroRecomp PRIVATE
     GBARECOMP_DEFAULT_DEBUG_PORT=19862
     GBARECOMP_WINDOW_TITLE="MegaManZeroRecomp"
@@ -113,6 +120,7 @@ if(GBAGAME_RECOMP_UI)
         target_link_libraries(game_launcher_ui PUBLIC opengl32)
     endif()
     target_link_libraries(MegaManZeroRecomp PRIVATE game_launcher_ui)
+    target_link_libraries(mmz_wide_hud_rows_tests PRIVATE game_launcher_ui)
     set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS GBAGAME_RECOMP_UI)
 endif()
 

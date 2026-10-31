@@ -1,14 +1,15 @@
 param(
     [string]$Rom = (Join-Path $PSScriptRoot '..\roms\megaman_zero_usa.gba'),
     [string]$GbarecompRoot = (Join-Path $PSScriptRoot '..\..\gbarecomp'),
-    [int]$MaxFunctions = 65536
+    [int]$MaxFunctions = 65536,
+    [string]$Recompiler = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $romPath = (Resolve-Path $Rom).Path
 $engine = (Resolve-Path $GbarecompRoot).Path
-$tool = Join-Path $engine 'build\gba_recompile.exe'
+$tool = if ($Recompiler) { (Resolve-Path -LiteralPath $Recompiler).Path } else { Join-Path $engine 'build\gba_recompile.exe' }
 if (-not (Test-Path -LiteralPath $tool)) {
     throw "Missing $tool. Configure and build the sibling gbarecomp checkout first."
 }

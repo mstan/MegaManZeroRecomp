@@ -120,6 +120,7 @@ if(GBAGAME_RECOMP_UI)
         target_link_libraries(game_launcher_ui PUBLIC opengl32)
     endif()
     target_link_libraries(MegaManZeroRecomp PRIVATE game_launcher_ui)
+    target_link_libraries(mmz_wide_hud_rows_tests PRIVATE game_launcher_ui)
     set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS GBAGAME_RECOMP_UI)
 endif()
 

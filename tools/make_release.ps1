@@ -97,6 +97,7 @@ if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -F
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $root 'PERMISSIONS.md') -Destination $stage
 foreach ($dll in $dlls) {
     $source = Join-Path $mingwBin $dll
     if (-not (Test-Path -LiteralPath $source)) { throw "Runtime DLL is missing: $source" }

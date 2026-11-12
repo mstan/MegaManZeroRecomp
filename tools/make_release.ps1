@@ -113,7 +113,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $assets 'img'))) {
 }
 Copy-Item -LiteralPath $assets -Destination $stage -Recurse
 
-# Game-owned mod catalog (the disabled-by-default Adaptive Widescreen
+# Game-owned mod catalog (Adaptive Widescreen enabled for fresh installs,
 # package), staged next to the exe by the POST_BUILD copy. The launcher seam
 # resolves the catalog at <exe>\mods\, so without this the shipped build has
 # an empty Mods page. Data only -- no ROM-derived content.
@@ -153,10 +153,10 @@ loads one.
 
 ## Optional widescreen
 
-Open Mods, enable Adaptive Widescreen, and choose Fit to screen. Apply the
-selection and resize the game window to reveal additional scenery. Native
-240x160 remains the default in a fresh extraction. Fixed wider views can also
-be selected in the mod settings.
+Adaptive Widescreen with Fit to screen is enabled in a fresh extraction.
+Resize the game window to reveal additional scenery. Existing saved mod
+choices are preserved. Open Mods to disable it for native 240x160 or select
+a fixed wider view.
 
 Known v$Version limitation: loading a save state in widescreen can temporarily
 desynchronize the extended presentation. Dying and choosing Retry, or another

@@ -17,8 +17,9 @@ void print_usage() {
         "MegaManZeroRecomp [--bios <path>] [--rom <path>] "
         "[--view-width <240..480>] [--resize-view] [game.toml]\n"
         "The BIOS and ROM must match the SHA-1 identities in game.toml.\n"
-        "View width defaults to the faithful 240; 288 is the recommended "
-        "experimental extended view. 384 is a progressive test width; "
+        "Adaptive Widescreen is enabled in a fresh mod catalog. Disable it "
+        "for the faithful 240 view. 288 is the recommended extended width; "
+        "384 is a progressive test width; "
         "480 is an exact-2x research mode. --resize-view instead follows "
         "the live window aspect ratio.\n");
 }

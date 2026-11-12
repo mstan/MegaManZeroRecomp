@@ -124,7 +124,7 @@ if(GBAGAME_RECOMP_UI)
     set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS GBAGAME_RECOMP_UI)
 endif()
 
-# Ship the game-owned, disabled-by-default adaptive-view package beside the
+# Ship the game-owned, enabled-by-default adaptive-view package beside the
 # executable. The launcher seam resolves the catalog at <exe dir>/mods, and
 # user-installed .gbamod archives join this same catalog.
 set(MMZ_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")

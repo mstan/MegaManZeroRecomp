@@ -28,6 +28,10 @@ void print_usage() {
 
 int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--version") == 0) {
+            std::printf("MegaManZeroRecomp v%s\n", MMZ_VERSION);
+            return 0;
+        }
         if (std::strcmp(argv[i], "--help") == 0 ||
             std::strcmp(argv[i], "-h") == 0) {
             print_usage();

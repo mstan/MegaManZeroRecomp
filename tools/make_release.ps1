@@ -92,6 +92,10 @@ $exe = Join-Path $build "$target.exe"
 if (-not (Test-Path -LiteralPath $exe)) { throw "Expected executable is missing: $exe" }
 & (Join-Path $mingwBin 'strip.exe') $exe
 if ($LASTEXITCODE -ne 0) { throw "strip failed ($LASTEXITCODE)." }
+$binaryVersion = (& $exe --version).Trim()
+if ($LASTEXITCODE -ne 0 -or $binaryVersion -ne "$target v$Version") {
+    throw "Executable version does not match archive: '$binaryVersion' versus v$Version"
+}
 
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
@@ -115,6 +119,9 @@ New-Item -ItemType Directory -Force -Path $fontNoticeStage | Out-Null
 foreach ($notice in $fontNotices) {
     Copy-Item -LiteralPath (Join-Path $root "tools/release-licenses/$notice") -Destination $fontNoticeStage
 }
+& (Get-Command python.exe).Source (Join-Path $root 'tools\collect_licenses.py') `
+    $engine $ui (Join-Path $stage 'licenses') --mingw (Split-Path $mingwBin)
+if ($LASTEXITCODE -ne 0) { throw 'Dependency notice staging failed.' }
 foreach ($dll in $dlls) {
     $source = Join-Path $mingwBin $dll
     if (-not (Test-Path -LiteralPath $source)) { throw "Runtime DLL is missing: $source" }

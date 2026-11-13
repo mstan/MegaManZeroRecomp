@@ -92,12 +92,36 @@ $exe = Join-Path $build "$target.exe"
 if (-not (Test-Path -LiteralPath $exe)) { throw "Expected executable is missing: $exe" }
 & (Join-Path $mingwBin 'strip.exe') $exe
 if ($LASTEXITCODE -ne 0) { throw "strip failed ($LASTEXITCODE)." }
+$binaryVersion = (& $exe --version).Trim()
+if ($LASTEXITCODE -ne 0 -or $binaryVersion -ne "$target v$Version") {
+    throw "Executable version does not match archive: '$binaryVersion' versus v$Version"
+}
 
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $root 'PERMISSIONS.md') -Destination $stage
+# Ship only the authored runtime presentation default, not the development
+# recompiler configuration or its paths/function metadata.
+$sourceToml = [IO.File]::ReadAllText((Join-Path $root 'game.toml'))
+$video = [regex]::Match($sourceToml, '(?ms)^\[video\]\s*\r?\n(.*?)(?=^\[|\z)')
+$screen = [regex]::Match($video.Groups[1].Value,
+    '(?m)^\s*screen\s*=\s*"([A-Za-z0-9_-]+)"\s*(?:#.*)?$')
+if (-not $video.Success -or -not $screen.Success) {
+    throw 'Cannot resolve the authored video.screen for release packaging.'
+}
+$runtimeConfig = "[video]`nscreen = `"$($screen.Groups[1].Value)`"`n"
+[IO.File]::WriteAllText((Join-Path $stage 'game.toml'), $runtimeConfig)
+$fontNotices = @('LatoLatin-OFL.txt', 'NotoSansSymbols2-OFL.txt', 'OpenMoji-LICENSE.txt')
+$fontNoticeStage = Join-Path $stage 'licenses/fonts'
+New-Item -ItemType Directory -Force -Path $fontNoticeStage | Out-Null
+foreach ($notice in $fontNotices) {
+    Copy-Item -LiteralPath (Join-Path $root "tools/release-licenses/$notice") -Destination $fontNoticeStage
+}
+& (Get-Command python.exe).Source (Join-Path $root 'tools\collect_licenses.py') `
+    $engine $ui (Join-Path $stage 'licenses') --mingw (Split-Path $mingwBin)
+if ($LASTEXITCODE -ne 0) { throw 'Dependency notice staging failed.' }
 foreach ($dll in $dlls) {
     $source = Join-Path $mingwBin $dll
     if (-not (Test-Path -LiteralPath $source)) { throw "Runtime DLL is missing: $source" }
@@ -113,7 +137,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $assets 'img'))) {
 }
 Copy-Item -LiteralPath $assets -Destination $stage -Recurse
 
-# Game-owned mod catalog (the disabled-by-default Adaptive Widescreen
+# Game-owned mod catalog (Adaptive Widescreen enabled for fresh installs,
 # package), staged next to the exe by the POST_BUILD copy. The launcher seam
 # resolves the catalog at <exe>\mods\, so without this the shipped build has
 # an empty Mods page. Data only -- no ROM-derived content.
@@ -147,16 +171,19 @@ The selected paths are cached next to the executable. SRAM saves, save states,
 and the native coverage cache are also stored locally. The ROM and BIOS are not
 included in this archive.
 
+Keep ``game.toml`` beside the executable. It carries the authored presentation
+default without development configuration or player settings.
+
 Keyboard: arrows = D-pad, Z = A, X = B, A = L, S = R, Enter = Start,
 Right Shift = Select, Tab = fast-forward. Shift+F1-F9 saves a state; F1-F9
 loads one.
 
 ## Optional widescreen
 
-Open Mods, enable Adaptive Widescreen, and choose Fit to screen. Apply the
-selection and resize the game window to reveal additional scenery. Native
-240x160 remains the default in a fresh extraction. Fixed wider views can also
-be selected in the mod settings.
+Adaptive Widescreen with Fit to screen is enabled in a fresh extraction.
+Resize the game window to reveal additional scenery. Existing saved mod
+choices are preserved. Open Mods to disable it for native 240x160 or select
+a fixed wider view.
 
 Known v$Version limitation: loading a save state in widescreen can temporarily
 desynchronize the extended presentation. Dying and choosing Retry, or another
@@ -169,7 +196,7 @@ Engine: https://github.com/mstan/gbarecomp
 $forbidden = Get-ChildItem -LiteralPath $stage -Recurse -File | Where-Object {
     $_.Extension -in @('.gba', '.sav', '.srm') -or
     $_.Name -ieq 'gba_bios.bin' -or
-    $_.Name -in @('game.toml', 'rom.cfg', 'bios.cfg')
+    $_.Name -in @('rom.cfg', 'bios.cfg', 'config.ini', 'input.ini')
 }
 if ($forbidden) {
     throw "Forbidden release content detected: $($forbidden.FullName -join ', ')"
@@ -228,6 +255,18 @@ try {
     if ($archive.Entries.Count -ne $files.Count) {
         throw "ZIP entry count mismatch: expected $($files.Count), got $(
             $archive.Entries.Count)"
+    }
+    $runtimeEntry = $archive.GetEntry('game.toml')
+    if ($null -eq $runtimeEntry) { throw 'Runtime presentation config missing from ZIP.' }
+    $reader = [IO.StreamReader]::new($runtimeEntry.Open(), [Text.Encoding]::UTF8)
+    try { $packagedConfig = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    if ($packagedConfig -cne $runtimeConfig) {
+        throw 'ZIP runtime presentation config differs from the authored profile.'
+    }
+    foreach ($notice in $fontNotices) {
+        if ($null -eq $archive.GetEntry("licenses/fonts/$notice")) {
+            throw "Bundled font notice missing from ZIP: $notice"
+        }
     }
 } finally {
     $archive.Dispose()

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(MegaManZeroRecomp C CXX)
+project(MegaManZeroRecomp VERSION 0.0.12 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
@@ -43,6 +43,8 @@ add_executable(MegaManZeroRecomp
     src/mods/mmz_adaptive_view_plugin.cpp
     ${GAME_GENERATED_SOURCES}
 )
+set_source_files_properties(src/main.cpp PROPERTIES
+    COMPILE_DEFINITIONS MMZ_VERSION="${PROJECT_VERSION}")
 
 # Keep generated guest translation units at a bounded optimization/debug-info
 # cost. gba_recompile partitions them into stable shards; the dispatch table and
@@ -124,7 +126,7 @@ if(GBAGAME_RECOMP_UI)
     set_property(SOURCE src/main.cpp APPEND PROPERTY COMPILE_DEFINITIONS GBAGAME_RECOMP_UI)
 endif()
 
-# Ship the game-owned, disabled-by-default adaptive-view package beside the
+# Ship the game-owned, enabled-by-default adaptive-view package beside the
 # executable. The launcher seam resolves the catalog at <exe dir>/mods, and
 # user-installed .gbamod archives join this same catalog.
 set(MMZ_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")

@@ -109,6 +109,12 @@ if (-not $video.Success -or -not $screen.Success) {
 }
 $runtimeConfig = "[video]`nscreen = `"$($screen.Groups[1].Value)`"`n"
 [IO.File]::WriteAllText((Join-Path $stage 'game.toml'), $runtimeConfig)
+$fontNotices = @('LatoLatin-OFL.txt', 'NotoSansSymbols2-OFL.txt', 'OpenMoji-LICENSE.txt')
+$fontNoticeStage = Join-Path $stage 'licenses/fonts'
+New-Item -ItemType Directory -Force -Path $fontNoticeStage | Out-Null
+foreach ($notice in $fontNotices) {
+    Copy-Item -LiteralPath (Join-Path $root "tools/release-licenses/$notice") -Destination $fontNoticeStage
+}
 foreach ($dll in $dlls) {
     $source = Join-Path $mingwBin $dll
     if (-not (Test-Path -LiteralPath $source)) { throw "Runtime DLL is missing: $source" }
@@ -249,6 +255,11 @@ try {
     try { $packagedConfig = $reader.ReadToEnd() } finally { $reader.Dispose() }
     if ($packagedConfig -cne $runtimeConfig) {
         throw 'ZIP runtime presentation config differs from the authored profile.'
+    }
+    foreach ($notice in $fontNotices) {
+        if ($null -eq $archive.GetEntry("licenses/fonts/$notice")) {
+            throw "Bundled font notice missing from ZIP: $notice"
+        }
     }
 } finally {
     $archive.Dispose()

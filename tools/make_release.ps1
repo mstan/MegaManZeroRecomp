@@ -98,6 +98,17 @@ New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $root 'PERMISSIONS.md') -Destination $stage
+# Ship only the authored runtime presentation default, not the development
+# recompiler configuration or its paths/function metadata.
+$sourceToml = [IO.File]::ReadAllText((Join-Path $root 'game.toml'))
+$video = [regex]::Match($sourceToml, '(?ms)^\[video\]\s*\r?\n(.*?)(?=^\[|\z)')
+$screen = [regex]::Match($video.Groups[1].Value,
+    '(?m)^\s*screen\s*=\s*"([A-Za-z0-9_-]+)"\s*(?:#.*)?$')
+if (-not $video.Success -or -not $screen.Success) {
+    throw 'Cannot resolve the authored video.screen for release packaging.'
+}
+$runtimeConfig = "[video]`nscreen = `"$($screen.Groups[1].Value)`"`n"
+[IO.File]::WriteAllText((Join-Path $stage 'game.toml'), $runtimeConfig)
 foreach ($dll in $dlls) {
     $source = Join-Path $mingwBin $dll
     if (-not (Test-Path -LiteralPath $source)) { throw "Runtime DLL is missing: $source" }
@@ -147,6 +158,9 @@ The selected paths are cached next to the executable. SRAM saves, save states,
 and the native coverage cache are also stored locally. The ROM and BIOS are not
 included in this archive.
 
+Keep ``game.toml`` beside the executable. It carries the authored presentation
+default without development configuration or player settings.
+
 Keyboard: arrows = D-pad, Z = A, X = B, A = L, S = R, Enter = Start,
 Right Shift = Select, Tab = fast-forward. Shift+F1-F9 saves a state; F1-F9
 loads one.
@@ -169,7 +183,7 @@ Engine: https://github.com/mstan/gbarecomp
 $forbidden = Get-ChildItem -LiteralPath $stage -Recurse -File | Where-Object {
     $_.Extension -in @('.gba', '.sav', '.srm') -or
     $_.Name -ieq 'gba_bios.bin' -or
-    $_.Name -in @('game.toml', 'rom.cfg', 'bios.cfg')
+    $_.Name -in @('rom.cfg', 'bios.cfg', 'config.ini', 'input.ini')
 }
 if ($forbidden) {
     throw "Forbidden release content detected: $($forbidden.FullName -join ', ')"
@@ -228,6 +242,13 @@ try {
     if ($archive.Entries.Count -ne $files.Count) {
         throw "ZIP entry count mismatch: expected $($files.Count), got $(
             $archive.Entries.Count)"
+    }
+    $runtimeEntry = $archive.GetEntry('game.toml')
+    if ($null -eq $runtimeEntry) { throw 'Runtime presentation config missing from ZIP.' }
+    $reader = [IO.StreamReader]::new($runtimeEntry.Open(), [Text.Encoding]::UTF8)
+    try { $packagedConfig = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    if ($packagedConfig -cne $runtimeConfig) {
+        throw 'ZIP runtime presentation config differs from the authored profile.'
     }
 } finally {
     $archive.Dispose()

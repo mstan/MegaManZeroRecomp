@@ -148,7 +148,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $mods 'packages'))) {
 Copy-Item -LiteralPath $mods -Destination $stage -Recurse
 
 & (Join-Path $engine 'tools\fetch_tcc.ps1') `
-    -Toolchain (Join-Path $stage 'overlay_toolchain') -EngineRoot $engine
+    -Toolchain (Join-Path $stage 'overlay_toolchain') -EngineRoot $engine -CacheDir (Join-Path $build 'release-toolchain-cache')
 if ($LASTEXITCODE -ne 0) { throw "Overlay toolchain staging failed ($LASTEXITCODE)." }
 
 @"
